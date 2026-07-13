@@ -1,0 +1,24 @@
+---
+description: Run the relevant test suite after significant codebase changes before finishing a task.
+alwaysApply: true
+---
+
+# Run tests after significant changes
+
+Before considering work complete on a coding task, run tests when **any** of these apply:
+
+- Changes under `src/`, `library/`, `interface/`, `modules/`, or `tests/`
+- Database or migration changes (`sql/`, Doctrine migrations)
+- Dependency or tooling changes (`composer.json`, `composer.lock`, `phpunit.xml*`, `package.json`)
+- Refactors touching more than ~3 files in the same feature area
+- Public API, routes, or security-sensitive code
+
+**How to run (OpenEMR):**
+
+- Full quality pass from repo root: `composer code-quality` when many PHP files changed
+- Isolated tests (no DB): `composer phpunit-isolated`
+- In Docker (full suite): from `docker/development-easy/`, `docker compose exec openemr /root/devtools unit-test` (and other devtools targets as appropriate)
+
+Choose the narrowest command that still covers the change. If tests fail, fix or explain the blocker before ending the turn.
+
+If only docs or comments changed, tests are optional unless CI still runs on those paths.

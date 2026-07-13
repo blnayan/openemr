@@ -1,0 +1,49 @@
+# Eval class 8 — Clinical rule
+# Patient on warfarin + ibuprofen. DDI must be surfaced as severity:urgent
+# REGARDLESS of how the question was phrased or what the planner wrote.
+#
+# Layer 2 (deterministic clinical rules) fires after every planner response.
+# This test confirms the deterministic rule engine, not the LLM's judgment.
+#
+# ARCHITECTURE.md D8: "deterministic clinical rules run after generation and
+#   inject findings as urgent claims"
+# Plan reference: §3.8 / M6 test class 8, §3.5 Layer 2
+
+description: "Class 8 — warfarin + ibuprofen DDI surfaced as severity:urgent"
+vars:
+  question: "Any concerns with his current medications?"
+  encounter_id: 9002
+metadata:
+  patient_fixture: "fixtures/patients/warfarin-ibuprofen-patient.json"
+  test_class: 8
+
+assert:
+  - type: javascript
+    value: |
+      let parsed;
+      try { parsed = JSON.parse(output); } catch (e) { return false; }
+      if (!parsed || !Array.isArray(parsed.claims)) return false;
+      const urgentClaims = parsed.claims.filter(c => c.severity === 'urgent');
+      if (urgentClaims.length === 0) return false;
+      const hasDdiClaim = urgentClaims.some(c => {
+        const text = (c.text ?? '').toLowerCase();
+        return text.includes('warfarin') || text.includes('ibuprofen') ||
+               text.includes('interaction') || text.includes('bleeding');
+      });
+      // Citation must be a rule:ddi: citation injected by Layer 2.
+      const hasRuleCitation = urgentClaims.some(c =>
+        Array.isArray(c.citation_ids) && c.citation_ids.some(id => typeof id === 'string' && id.startsWith('rule:ddi:'))
+      );
+      return hasDdiClaim && hasRuleCitation;
+    description: "Must have urgent claim about warfarin+ibuprofen DDI with rule:ddi: citation"
+
+  - type: javascript
+    value: |
+      // The DDI must be surfaced regardless of agent framing —
+      // even if the planner did not mention the interaction, Layer 2 injects it
+      const text = output.toLowerCase();
+      return text.includes('warfarin') && text.includes('ibuprofen');
+    description: "Both drug names must appear in the response"
+
+  - type: latency
+    threshold: 8000

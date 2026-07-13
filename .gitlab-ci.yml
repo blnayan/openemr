@@ -1,0 +1,195 @@
+# AgentForge CI — runs the agent-side unit tests and the deterministic-
+# rubric eval suite. Ported from .github/workflows/agentforge-eval.yml.
+#
+# Job logs (stdout/stderr) stream live in the GitLab UI under
+# CI/CD → Pipelines → <job>. The full eval output JSON is also kept as
+# a build artifact for 30 days.
+#
+# Eval determinism (added 2026-05-10):
+#   The eval suite runs in FIXTURE MODE — the agent's chart tools
+#   (get_medications, get_recent_labs, …) return data from a frozen
+#   JSON snapshot at agent/evals/fixtures/chart-snapshot.json instead
+#   of calling FhirClient. CI does not need a live OpenEMR or MariaDB.
+#   See agent/src/eval/FixtureToolDispatcher.ts for the dispatcher and
+#   `npm run eval:snapshot` for refreshing the fixture from a dev DB.
+#
+# Required CI/CD variables (Settings → CI/CD → Variables, masked + protected):
+#   OPENROUTER_API_KEY              — LLM provider for the chat path (required)
+#   PINECONE_API_KEY                — guideline retrieval (required for the
+#                                     EVIDENCE / OUT-OF-CORPUS buckets; the
+#                                     supervisor falls through to clinical
+#                                     data only when unset, dropping evidence
+#                                     coverage but not failing the gate)
+#
+# Optional CI/CD variables (set if you want them, fine to leave unset):
+#   LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY  — observability traces.
+#                                                When unset the wrapper is a
+#                                                no-op; rubrics still work.
+#   AGENTFORGE_JWT_SECRET           — inter-service JWT secret. CI generates
+#                                     a fresh one per pipeline if unset; set
+#                                     it explicitly only if you want trace
+#                                     stability across runs.
+#   AGENTFORGE_PHI_REDACTION_SALT   — HMAC salt for the PHI redactor. Same:
+#                                     CI generates a fresh one if unset.
+
+default:
+  image: node:24
+  interruptible: true
+
+stages:
+  - test
+  - eval
+
+# Shared template: install agent deps with cached node_modules.
+#
+# Uses `npm install` rather than `npm ci` for the same reason the
+# production Dockerfile does: platform-conditional optional deps
+# (`@swc/core-linux-x64-*`, `playwright` browser binaries, the
+# `@azure/*`/`pg`/`@redis/client` transitive set pulled in by
+# Pinecone + Langfuse) sometimes hash differently between the host
+# npm that generated the committed lockfile and the CI runner's
+# node:24 npm. `npm ci` treats those mismatches as a fatal
+# package.json-vs-lockfile drift; `npm install` resolves them
+# without rewriting the lockfile when --no-save is omitted (we accept
+# the mild reproducibility cost in exchange for a working gate). See
+# the comment in agent/Dockerfile for the same trade-off.
+.agent-base:
+  before_script:
+    - cd agent
+    - npm install --prefer-offline --no-audit --fund=false
+  cache:
+    key:
+      files:
+        - agent/package-lock.json
+    paths:
+      - agent/node_modules/
+
+agent-test:
+  extends: .agent-base
+  stage: test
+  script:
+    - npm test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH
+      changes:
+        - agent/**/*
+        - .gitlab-ci.yml
+
+agent-eval:
+  extends: .agent-base
+  stage: eval
+  timeout: 25m
+  variables:
+    # Pinned to match local dev (agent/.env.local). Without these the
+    # agent falls back to its code defaults, which drifts from what the
+    # author actually evaluates against day to day.
+    AGENTFORGE_MODEL: anthropic/claude-haiku-4.5
+    # Synthesizer pinned to Haiku 4.5 to match local dev. The eval
+    # baseline (90% safe_refusal floor) is calibrated against the
+    # Haiku synthesizer's behavior — Sonnet 4.6 is less eager to
+    # cite tools when reasoning across absent data, which trips the
+    # tool-citation rubrics on borderline UC-3 / UC-6 / Conv cases.
+    AGENTFORGE_SYNTHESIZER_MODEL: anthropic/claude-haiku-4.5
+    OPENROUTER_VLM_MODEL: anthropic/claude-sonnet-4.5
+    PINECONE_INDEX_NAME: agentforge-guidelines-v1
+    PINECONE_EMBED_MODEL: llama-text-embed-v2
+    PINECONE_RERANK_MODEL: bge-reranker-v2-m3
+    LANGSMITH_TRACING: "true"
+    LANGSMITH_PROJECT: agentforge-eval
+    # ---- Fixture mode (added 2026-05-10) ----
+    # Without these the agent's chart tools call FhirClient → real
+    # OpenEMR FHIR → real MariaDB. CI has none of those; previously
+    # every chart-tool call returned ok:false and the eval suite
+    # measured the agent's "degraded" path rather than its real
+    # behavior. Fixture mode swaps in canned ToolResults at boot.
+    #
+    # AGENTFORGE_EVAL_FIXTURE_PATH points at the committed snapshot.
+    # EVAL_PATIENT_UUID + EVAL_PID match the fixture's patient so the
+    # eval JWT minted by mint-eval-jwt.mjs is consistent with what
+    # the dispatcher returns.
+    #
+    # Refresh the fixture by running `npm run eval:snapshot` against a
+    # dev DB and committing the resulting JSON. CI is byte-stable
+    # between snapshots — no DB state can leak in.
+    AGENTFORGE_EVAL_FIXTURE_PATH: $CI_PROJECT_DIR/agent/evals/fixtures/chart-snapshot.json
+    EVAL_PATIENT_UUID: a1be5a96-ad05-4850-b9eb-168c08b55297
+    EVAL_PID: "1"
+    # FhirClient + OpenEmrTokenProvider are still constructed per
+    # request even in fixture mode — they're just never called by the
+    # overridden chart tools. Provide harmless placeholders so
+    # construction doesn't throw on missing config.
+    OPENEMR_FHIR_BASE_URL: http://fixture-mode.invalid/apis/default/fhir
+    OPENEMR_FHIR_TLS_INSECURE: "0"
+  script:
+    # Inter-service auth secrets. AGENTFORGE_JWT_SECRET binds the eval
+    # driver's JWT to the agent's verifyJwt middleware; both sides just
+    # need the same opaque value, no external service involved. Same
+    # logic for AGENTFORGE_PHI_REDACTION_SALT — it's an HMAC salt used
+    # by PhiRedactor to deterministically tokenize PHI. Generated fresh
+    # per pipeline so the secrets never leave CI. (Operators who want
+    # cross-run trace stability — e.g. to join Langfuse traces across
+    # eval runs — can override via GitLab CI/CD Variables.)
+    - export AGENTFORGE_JWT_SECRET="${AGENTFORGE_JWT_SECRET:-$(openssl rand -hex 32)}"
+    - export AGENTFORGE_PHI_REDACTION_SALT="${AGENTFORGE_PHI_REDACTION_SALT:-$(openssl rand -hex 32)}"
+    - export EVAL_JWT="$(node scripts/mint-eval-jwt.mjs)"
+    # Start the agent service in the background. The eval providers POST to
+    # http://localhost:3030/chat — without this, every case fails with
+    # ECONNREFUSED. AGENT_SERVICE_PORT must match evals/config.yaml.
+    # AGENTFORGE_BOOTSTRAP_SKIP_OPENEMR_PROBE=1 because OpenEMR is not
+    # started in this job; the bootstrap probe would otherwise spin
+    # forever waiting for it.
+    - |
+      AGENT_SERVICE_PORT=3030 \
+      AGENTFORGE_BOOTSTRAP_SKIP_OPENEMR_PROBE=1 \
+        npx tsx src/server.ts > agent.log 2>&1 &
+      echo "agent pid=$!"
+    # Sanity check: the FixtureToolDispatcher emits a loud warn line at
+    # boot when active. Grepping it here surfaces a misconfiguration as
+    # a fast CI failure rather than a silent fallback to (degraded)
+    # FHIR mode that would land us back on flaky live-DB evals.
+    - |
+      for i in $(seq 1 30); do
+        if grep -q 'EVAL FIXTURE MODE ACTIVE' agent.log; then
+          echo "fixture mode confirmed active after ${i}s"; break
+        fi
+        if [ "$i" = "30" ]; then
+          echo "ERROR: fixture mode never activated. Recent agent log:"
+          tail -50 agent.log
+          exit 1
+        fi
+        sleep 1
+      done
+    # Wait up to 60s for /healthz; dump the log and fail fast if it never
+    # comes up so the eval doesn't run against a dead server.
+    - |
+      for i in $(seq 1 60); do
+        if curl -fsS http://localhost:3030/healthz > /dev/null 2>&1; then
+          echo "agent ready after ${i}s"; break
+        fi
+        if [ "$i" = "60" ]; then
+          echo "agent never came up — log:"; cat agent.log; exit 1
+        fi
+        sleep 1
+      done
+    # Run promptfoo; ignore its exit code so eval-gate.mjs is the source
+    # of truth for whether the pipeline fails (matches the GH workflow).
+    - |
+      npx promptfoo eval \
+        --config evals/config.yaml \
+        --output .eval-output.json || true
+    - node scripts/eval-gate.mjs .eval-output.json evals/baseline.json
+  artifacts:
+    when: always
+    name: "agentforge-eval-output-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - agent/.eval-output.json
+      - agent/agent.log
+    expire_in: 30 days
+  rules:
+    # Forks cannot read masked variables; skip rather than fail spuriously.
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_PROJECT_ID != $CI_MERGE_REQUEST_SOURCE_PROJECT_ID
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH
+      changes:
+        - agent/**/*
+        - .gitlab-ci.yml

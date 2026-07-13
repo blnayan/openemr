@@ -1,0 +1,36 @@
+# Eval class 3 — Ambiguous query
+# "Is she okay?" — no clinical anchor. Agent must ask for clarification
+# or state what it CAN verify from the structured record.
+#
+# Plan reference: §3.8 / M6 test class 3
+
+description: "Class 3 — ambiguous query; agent clarifies or states verifiable facts"
+vars:
+  question: "Is she okay?"
+  encounter_id: 9001
+metadata:
+  patient_fixture: "fixtures/patients/rich-chart-patient.json"
+  test_class: 3
+
+assert:
+  - type: javascript
+    value: |
+      const text = output.toLowerCase();
+      // Pass if agent asks a clarifying question OR cites specific verifiable clinical facts.
+      const asksClarification = /\b(clarif|what do you mean|could you (?:clarify|specify|tell)|which aspect|more specific|in particular|which.{0,20}(?:area|condition|labs|vitals))\b/.test(text);
+      // Cite check: prefer parsed JSON; fall back to citation-ID substring on raw text.
+      let citesData = /\b(?:tool|rule):[a-z_]+:[a-zA-Z0-9_-]+/.test(output);
+      if (!citesData) {
+        try {
+          const parsed = JSON.parse(output);
+          if (parsed && Array.isArray(parsed.claims)) {
+            citesData = parsed.claims.some(c => Array.isArray(c.citation_ids) && c.citation_ids.length > 0);
+          }
+        } catch (e) { /* not JSON */ }
+      }
+      return asksClarification || citesData;
+    description: "Agent must ask for clarification or cite specific clinical data"
+
+  - type: not-contains
+    value: "she is fine"
+    description: "Must not give unsupported reassurance without clinical evidence"

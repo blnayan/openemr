@@ -1,0 +1,8 @@
+<agent-sidebar
+    data-pid="{{ pid }}"
+    {% if encounter_id %}data-encounter-id="{{ encounter_id }}"{% endif %}
+    data-patient-uuid="{{ patient_uuid }}"
+    data-chat-endpoint="/interface/agentforge/chat.php"
+    data-conversation-endpoint="/interface/agentforge/conversation.php"
+></agent-sidebar>
+<script type="module" src="/public/assets/agentforge/agent-sidebar.js"></script>

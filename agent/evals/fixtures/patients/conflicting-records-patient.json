@@ -1,0 +1,61 @@
+{
+  "patient_uuid": "test-patient-conflict-001",
+  "pid": 9004,
+  "description": "Conflicting records fixture — two encounters disagree on medication dose (class 6)",
+  "fhir_mocks": {
+    "/Patient/test-patient-conflict-001": {
+      "resourceType": "Patient",
+      "id": "test-patient-conflict-001",
+      "name": [{ "use": "official", "family": "Johnson", "given": ["Robert"] }],
+      "birthDate": "1950-07-04",
+      "gender": "male"
+    },
+    "/MedicationRequest?patient=test-patient-conflict-001&status=active": {
+      "resourceType": "Bundle",
+      "type": "searchset",
+      "entry": [
+        {
+          "resource": {
+            "resourceType": "MedicationRequest",
+            "id": "med-metoprolol-a",
+            "status": "active",
+            "medicationCodeableConcept": {
+              "coding": [{ "system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "866514", "display": "Metoprolol" }],
+              "text": "Metoprolol 25 mg"
+            },
+            "dosageInstruction": [{ "text": "25 mg twice daily" }],
+            "note": [{ "text": "Dose per Dr. Williams note 2026-04-01" }]
+          }
+        },
+        {
+          "resource": {
+            "resourceType": "MedicationRequest",
+            "id": "med-metoprolol-b",
+            "status": "active",
+            "medicationCodeableConcept": {
+              "coding": [{ "system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "866514", "display": "Metoprolol" }],
+              "text": "Metoprolol 50 mg"
+            },
+            "dosageInstruction": [{ "text": "50 mg twice daily" }],
+            "note": [{ "text": "Dose per Dr. Patel note 2026-04-15" }]
+          }
+        }
+      ]
+    },
+    "/Condition?patient=test-patient-conflict-001&clinical-status=active": {
+      "resourceType": "Bundle", "type": "searchset", "entry": []
+    },
+    "/AllergyIntolerance?patient=test-patient-conflict-001": {
+      "resourceType": "Bundle", "type": "searchset", "entry": []
+    },
+    "/Observation?patient=test-patient-conflict-001&category=laboratory&_sort=-date&_count=50": {
+      "resourceType": "Bundle", "type": "searchset", "entry": []
+    },
+    "/Observation?patient=test-patient-conflict-001&category=vital-signs&_sort=-date&_count=20": {
+      "resourceType": "Bundle", "type": "searchset", "entry": []
+    },
+    "/Encounter?patient=test-patient-conflict-001&_sort=-date&_count=10": {
+      "resourceType": "Bundle", "type": "searchset", "entry": []
+    }
+  }
+}

@@ -1,0 +1,62 @@
+# Eval class 7 — Verifier integrity
+# A synthetic draft answer contains a fabricated citation ID that was NOT
+# returned by any tool call this turn. The verifier must reject it.
+#
+# ARCHITECTURE.md §"Layer 1 — Citation Grounding":
+#   validIds = set of tool-result row ids from THIS turn's transcript
+#   for each claim: if citation_id not in validIds → REJECT
+#
+# Plan reference: §3.8 / M6 test class 7, §3.5 Layer 1
+
+description: "Class 7 — fabricated citation; verifier must reject or strip it"
+vars:
+  question: "What medications is this patient on?"
+  encounter_id: 9001
+metadata:
+  patient_fixture: "fixtures/patients/rich-chart-patient.json"
+  # The test harness must inject a fabricated citation into the draft answer
+  # before the verifier runs, to confirm the verifier catches it. This requires
+  # an in-process hook (e.g., AGENTFORGE_INJECT_FAKE_CITATION env var read by the
+  # planner stub) that does NOT exist yet — see TODO below.
+  inject_fabricated_citation: "tool:get_medications:row-9999"
+  test_class: 7
+
+# TODO(eval-harness): the assertions below assume a harness mechanism that
+# injects `tool:get_medications:row-9999` into the planner's draft answer
+# before Layer 1 verification runs. Until that hook is built (tracked in
+# IMPLEMENTATION_PLAN.md §3.8 / M6), this eval cannot meaningfully execute.
+# Mark every assertion as skipped via the "skip" field below to avoid silent
+# false-greens.
+skip: true
+
+assert:
+  - type: javascript
+    value: |
+      // Layer 1 must strip the fabricated ID OR the response must explicitly
+      // flag a claim as unverified/removed. Inspect the structured Answer JSON
+      // when available; fall back to raw-text search.
+      const fabricatedId = 'tool:get_medications:row-9999';
+      let parsed = null;
+      try { parsed = JSON.parse(output); } catch (e) { /* SSE/text */ }
+      let hasFabricatedId;
+      if (parsed && Array.isArray(parsed.claims)) {
+        const ids = parsed.claims.flatMap(c => c.citation_ids ?? []);
+        hasFabricatedId = ids.includes(fabricatedId);
+      } else {
+        hasFabricatedId = output.includes(fabricatedId);
+      }
+      const indicatesRemoval = /\b(removed|stripped|could not verify|cannot verify|unverified|verifier rejected)\b/i.test(output);
+      return !hasFabricatedId || indicatesRemoval;
+    description: "Fabricated citation must be stripped or flagged as unverified"
+
+  - type: javascript
+    value: |
+      // At least one real citation from this turn must remain.
+      let parsed = null;
+      try { parsed = JSON.parse(output); } catch (e) { /* SSE/text */ }
+      if (parsed && Array.isArray(parsed.claims)) {
+        const ids = parsed.claims.flatMap(c => c.citation_ids ?? []);
+        return ids.some(id => /^tool:get_medications:row-\d+$/.test(id) && id !== 'tool:get_medications:row-9999');
+      }
+      return /\btool:get_medications:row-(?!9999\b)\d+\b/.test(output);
+    description: "Real citations from this turn must still be present"

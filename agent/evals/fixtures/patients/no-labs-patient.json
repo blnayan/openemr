@@ -1,0 +1,32 @@
+{
+  "patient_uuid": "test-patient-no-labs-001",
+  "pid": 9003,
+  "description": "Missing data fixture — patient with no recent lab results (class 2)",
+  "fhir_mocks": {
+    "/Patient/test-patient-no-labs-001": {
+      "resourceType": "Patient",
+      "id": "test-patient-no-labs-001",
+      "name": [{ "use": "official", "family": "Nguyen", "given": ["Thanh"] }],
+      "birthDate": "1972-09-30",
+      "gender": "female"
+    },
+    "/Condition?patient=test-patient-no-labs-001&clinical-status=active": {
+      "resourceType": "Bundle", "type": "searchset", "entry": []
+    },
+    "/MedicationRequest?patient=test-patient-no-labs-001&status=active": {
+      "resourceType": "Bundle", "type": "searchset", "entry": []
+    },
+    "/AllergyIntolerance?patient=test-patient-no-labs-001": {
+      "resourceType": "Bundle", "type": "searchset", "entry": []
+    },
+    "/Observation?patient=test-patient-no-labs-001&category=laboratory&_sort=-date&_count=50": {
+      "resourceType": "Bundle", "type": "searchset", "entry": []
+    },
+    "/Observation?patient=test-patient-no-labs-001&category=vital-signs&_sort=-date&_count=20": {
+      "resourceType": "Bundle", "type": "searchset", "entry": []
+    },
+    "/Encounter?patient=test-patient-no-labs-001&_sort=-date&_count=10": {
+      "resourceType": "Bundle", "type": "searchset", "entry": []
+    }
+  }
+}

@@ -1,0 +1,116 @@
+/**
+ * Patient dashboard SPA — Tailwind v4 entry.
+ *
+ * Design tokens are declared via the `@theme` directive below; Tailwind
+ * generates utility classes (bg-blue, text-ink, shadow-launcher, etc.)
+ * from these names. Components consume those utility classes only —
+ * never raw `var(--*)` references — so this file is the single source of
+ * truth for the design system.
+ *
+ * Token sources:
+ *   - W2 PRD § "Design Tokens"
+ *   - design_handoff_patient_dashboard/design-files/
+ *   - Pre-migration src/styles/tokens.css (now removed)
+ */
+
+@import "tailwindcss";
+
+@theme {
+  /* Brand */
+  --color-blue: #0d63c4;
+  --color-blue-soft: #e8f0fb;
+
+  /* Ink scale */
+  --color-ink: #1c2330;
+  --color-ink-2: #2a3340;
+  --color-ink-muted: #5a6470;
+  --color-ink-faint: #7a8290;
+  --color-ink-ghost: #b8bec7;
+
+  /* Backgrounds */
+  --color-bg-page: #f4f6f9;
+  --color-bg-card: #ffffff;
+  --color-bg-strip: #f8fafc;
+  --color-bg-rail: #fafbfd;
+  --color-bg-answer: #fafbfc;
+  --color-bg-control-hover: #f0f3f8;
+
+  /* Borders */
+  --color-border: #e3e6eb;
+  --color-border-2: #d5dce5;
+  --color-border-soft: #eef1f6;
+  --color-strip-divider: #d8dde4;
+
+  /* Status / severity */
+  --color-ok: #1f7a3f;
+  --color-ok-dot: #66e08d;
+  --color-severe: #b22323;
+  --color-severe-bg: #fdecec;
+  --color-warn: #8a5a00;
+  --color-warn-bg: #fff4e0;
+  --color-unknown-bg: #f4f6f9;
+
+  /* Citation chips */
+  --color-cite-doc: #e0a325;
+  --color-cite-doc-ink: #2a1a00;
+
+  /* Shadows */
+  --shadow-launcher: 0 8px 18px -4px rgba(13, 99, 196, 0.35);
+  --shadow-dock:
+    0 18px 36px -12px rgba(20, 40, 80, 0.14),
+    0 2px 6px rgba(20, 40, 80, 0.04);
+  --shadow-dropdown: 0 4px 12px rgba(20, 40, 80, 0.08);
+  --shadow-input-focus: 0 0 0 2px #e8f0fb;
+
+  /* Tailwind v4's default spacing scale (--spacing: 0.25rem) covers
+   * fractional values like p-2.25 = 9px, p-2.75 = 11px, p-3.25 = 13px,
+   * p-5.5 = 22px out of the box. No extra spacing tokens needed.
+   */
+
+  /* Type scale uses Tailwind's preset sizes — text-base (16px) is the
+   * body floor, text-xs (12px) for fine-print labels, text-lg (18px) for
+   * the patient name. No custom --text-* tokens. */
+
+  /* Radii */
+  --radius-2: 2px;
+  --radius-3: 3px;
+  --radius-4: 4px;
+  --radius-6: 6px;
+
+  /* Letter spacing */
+  --tracking-cite: 0.02em;
+  --tracking-label: 0.04em;
+  --tracking-rail: 0.06em;
+
+  /* Fonts */
+  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* ---------------------------------------------------------------- */
+/* Base / reset — anything beyond a global font + page background    */
+/* belongs in component utility class strings.                        */
+/* ---------------------------------------------------------------- */
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg-page);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  /* Body floor is Tailwind's text-base (1rem = 16px). */
+  font-size: 1rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}

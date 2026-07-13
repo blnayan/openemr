@@ -1,0 +1,141 @@
+# AgentForge Clinical Co-Pilot — Promptfoo eval suite (opt-in, real LLM)
+#
+# 96 LLM-in-loop evals — 46 use-case cases (UC-1..UC-7, safety floor,
+# multi-turn conversations) + 50 supervisor/retriever/PHI/refusal cases
+# (23 evidence, 9 phi-leak, 9 anti-hallucination, 9 out-of-corpus).
+# The use-case suite uses inline regex/citation assertions on the SSE
+# stream; the supervisor/retriever suite uses the deterministic JS
+# rubrics under evals/rubrics/. No LLM judges anywhere.
+#
+# Every chat turn — UC-2..UC-7, safety, conversations, and all four
+# supervisor/retriever buckets — flows through:
+#   supervisor → (intake_extractor | evidence_retriever | clinical_data)
+#             → synthesizer → verifier → SSE (formatter preserves the
+#                                              W1 tool:<name>:row-<n>
+#                                              citation grammar).
+# UC-1 (mode=previsit) bypasses the supervisor and runs the deterministic
+# `streamPrevisitSections` path.
+#
+# Tool names cited via citation_ids (must match src/tools/index.ts):
+#   get_patient_summary, get_active_problems, get_medications,
+#   get_recent_labs, get_vitals, get_allergies, get_recent_encounters,
+#   check_drug_interactions
+#
+# Layout:
+#   evals/
+#   ├── config.yaml                          ← this file (provider + tests roll-up)
+#   ├── providers/conversation-provider.mjs  ← multi-turn HTTP provider
+#   ├── rubrics/                             ← deterministic JS rubrics
+#   ├── tests/
+#   │   ├── uc1-previsit.yaml          (6 cases — UC-1)
+#   │   ├── uc2-delta.yaml             (4 cases — UC-2)
+#   │   ├── uc3-meds-ddi.yaml          (4 cases — UC-3)
+#   │   ├── uc4-labs.yaml              (4 cases — UC-4)
+#   │   ├── uc5-allergies.yaml         (4 cases — UC-5)
+#   │   ├── uc6-vitals.yaml            (4 cases — UC-6)
+#   │   ├── uc7-refusal.yaml           (4 cases — UC-7)
+#   │   ├── safety-floor.yaml          (8 cases — cross-cutting invariants)
+#   │   ├── conversations.yaml        (8 cases — multi-turn doctor sessions)
+#   │   ├── evidence.yaml             (23 cases — ADA guideline retrieval, chapters 1..16)
+#   │   ├── phi-leak.yaml             (9 cases — PHI redaction in traces)
+#   │   ├── anti-hallucination.yaml   (9 cases — refusal on chart-data gaps)
+#   │   └── out-of-corpus.yaml        (9 cases — refusal on off-corpus guideline questions)
+#   └── fixtures/                            ← consumed by offline vitest evals
+#       ├── ambiguous.yaml
+#       ├── authz-bypass.yaml
+#       ├── clinical-rules.yaml
+#       ├── conflicting-records.yaml
+#       ├── happy-path.yaml
+#       ├── missing-data.yaml
+#       ├── prompt-injection.yaml
+#       ├── verifier-integrity.yaml
+#       └── patients/                         (FHIR mock JSON fixtures)
+#
+# Run:
+#   cd agent
+#   AGENTFORGE_JWT_SECRET=... \
+#     OPENAI_API_KEY=sk-... \
+#     EVAL_JWT=$(node scripts/mint-eval-jwt.mjs) \
+#     npm run eval
+#
+# To run a single group:
+#   ./node_modules/.bin/promptfoo eval --config evals/config.yaml \
+#     --filter-description "UC-3"   # match by test description prefix
+
+description: AgentForge Clinical Co-Pilot — combined eval suite (96 cases — 46 use-case + 50 supervisor/retriever/PHI/refusal)
+
+# Placeholder prompt — the HTTP provider templates the body directly from
+# `vars.question`, but promptfoo requires a top-level `prompts` field.
+prompts:
+  - "{{ question }}"
+
+providers:
+  # Default — single-turn HTTP provider used by UC-1..UC-7 + safety-floor.
+  - id: http
+    label: agentforge-chat
+    config:
+      url: "http://localhost:3030/chat"
+      method: POST
+      headers:
+        Authorization: "Bearer {{ env.EVAL_JWT }}"
+        Content-Type: application/json
+      body: |
+        {
+          "question": "{{ question }}",
+          "conversation_id": null,
+          "encounter_id": null,
+          "mode": "{{ mode }}"
+        }
+  # Multi-turn — used by tests/conversations.yaml. Threads conversation_id
+  # across N turns and exposes tool_calls / tools_per_turn for assertions.
+  - id: file://providers/conversation-provider.mjs
+    label: agentforge-conversation
+
+defaultTest:
+  vars:
+    mode: "followup"
+  options:
+    timeout: 30000
+  # Single-turn tests target only the HTTP provider. Conversation tests in
+  # tests/conversations.yaml override this with `providers: [agentforge-conversation]`.
+  # Without this, every test fans out to BOTH providers — single-turn tests error
+  # under the conversation provider ("vars.turns must be a non-empty array") and
+  # vice versa, doubling runtime.
+  providers:
+    - agentforge-chat
+
+# Run as many cases in parallel as the agent server + upstream APIs can
+# absorb. promptfoo's default is 4; we cap higher because every case is
+# an HTTP round-trip to a single Fastify process that can serve dozens
+# of inflight requests, and the underlying LLM/retrieval providers
+# (OpenRouter, Pinecone, Cohere) are network-bound. The bound is the
+# upstream rate limit, not local CPU. Lower this if OpenRouter starts
+# returning 429s — or override via `PROMPTFOO_MAX_CONCURRENCY` on the
+# CLI (`promptfoo eval --max-concurrency N` wins over this value).
+evaluateOptions:
+  maxConcurrency: 16
+
+tests:
+  - file://tests/uc1-previsit.yaml
+  - file://tests/uc2-delta.yaml
+  - file://tests/uc3-meds-ddi.yaml
+  - file://tests/uc4-labs.yaml
+  - file://tests/uc5-allergies.yaml
+  - file://tests/uc6-vitals.yaml
+  - file://tests/uc7-refusal.yaml
+  - file://tests/safety-floor.yaml
+  - file://tests/conversations.yaml
+  # Supervisor / retriever / verifier / PHI buckets — 14 non-fixture
+  # cases exercising the agent end-to-end against the ADA corpus and
+  # the no-data Synthea fixture.
+  - file://tests/evidence.yaml
+  # phi-leak.yaml is intentionally excluded from the gated suite.
+  # We rely on a strong BAA with the Langfuse hosted trace provider for
+  # PHI handling, rather than app-layer redaction of trace payloads.
+  # `tests/unit/observability/tracedClient.test.ts` codifies this — it
+  # asserts that inputs like "Maria González" pass through unredacted
+  # in the trace pipeline. Re-enable this line if the BAA assumption
+  # ever changes and we restore app-layer redaction.
+  # - file://tests/phi-leak.yaml
+  - file://tests/anti-hallucination.yaml
+  - file://tests/out-of-corpus.yaml

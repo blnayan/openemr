@@ -1,0 +1,182 @@
+# AgentForge eval gate — runs the deterministic-rubric eval suite on every
+# pull request and on every push to main / master. The gate fails the
+# build (non-zero exit from `agent/scripts/eval-gate.mjs`) when any rubric
+# regresses by more than 5 percentage points or drops below its absolute
+# floor (see `agent/evals/baseline.json`).
+#
+# This is the source of truth for the eval gate per issue 16. It cannot
+# be bypassed by `--no-verify`; the local pre-commit hooks are
+# convenience only.
+#
+# The job skips on PRs from forks because forks do not have access to
+# the API key secrets the providers need. Internal PRs and `main` pushes
+# always run.
+#
+# Required secrets (set under Settings → Secrets → Actions):
+#   - OPENROUTER_API_KEY              — LLM provider for the chat path
+#   - PINECONE_API_KEY                — guideline retrieval
+#   - LANGSMITH_API_KEY               — trace capture for noPhiInLogs
+#   - AGENTFORGE_JWT_SECRET           — HS256 secret for eval JWTs
+#   - AGENTFORGE_PHI_REDACTION_SALT   — HMAC salt for the PHI redactor
+#
+# Baseline-update path: any PR that modifies
+# `agent/evals/baseline.json` must be titled `promote eval baseline`.
+# That convention is enforced by the `baseline-promotion-title-check`
+# job below (issue 16, Part F).
+
+name: agentforge-eval
+
+on:
+  pull_request:
+    paths:
+      - 'agent/**'
+      - '.github/workflows/agentforge-eval.yml'
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'agent/**'
+      - '.github/workflows/agentforge-eval.yml'
+
+jobs:
+  eval-gate:
+    name: eval-gate
+    runs-on: ubuntu-latest
+    # Skip forks — secrets are unavailable so the eval would fail
+    # spuriously. Internal PRs and main pushes still run.
+    if: ${{ github.event.pull_request.head.repo.fork != true }}
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: agent
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: agent/package-lock.json
+
+      - name: Install agent dependencies
+        run: npm ci
+
+      - name: Mint eval JWT
+        env:
+          AGENTFORGE_JWT_SECRET: ${{ secrets.AGENTFORGE_JWT_SECRET }}
+        run: |
+          jwt=$(node scripts/mint-eval-jwt.mjs)
+          echo "EVAL_JWT=$jwt" >> "$GITHUB_ENV"
+
+      - name: Start agent server
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+          PINECONE_INDEX_NAME: agentforge-guidelines-v1
+          PINECONE_EMBED_MODEL: llama-text-embed-v2
+          PINECONE_RERANK_MODEL: bge-reranker-v2-m3
+          LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+          LANGSMITH_TRACING: 'true'
+          LANGSMITH_PROJECT: agentforge-eval
+          AGENTFORGE_JWT_SECRET: ${{ secrets.AGENTFORGE_JWT_SECRET }}
+          AGENTFORGE_PHI_REDACTION_SALT: ${{ secrets.AGENTFORGE_PHI_REDACTION_SALT }}
+          # Pinned to match local dev (agent/.env.local). Without these the
+          # agent falls back to its code defaults, which drifts from what
+          # the author actually evaluates against day to day.
+          AGENTFORGE_MODEL: anthropic/claude-haiku-4.5
+          AGENTFORGE_SYNTHESIZER_MODEL: anthropic/claude-sonnet-4.6
+          OPENROUTER_VLM_MODEL: anthropic/claude-sonnet-4.5
+          AGENT_SERVICE_PORT: '3030'
+          AGENTFORGE_BOOTSTRAP_SKIP_OPENEMR_PROBE: '1'
+        # The eval providers POST to http://localhost:3030/chat — without
+        # an agent server here, every case fails with ECONNREFUSED.
+        # AGENT_SERVICE_PORT must match evals/config.yaml.
+        run: |
+          npx tsx src/server.ts > agent.log 2>&1 &
+          echo "agent pid=$!"
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3030/healthz > /dev/null 2>&1; then
+              echo "agent ready after ${i}s"; exit 0
+            fi
+            sleep 1
+          done
+          echo "agent never came up — log:"; cat agent.log; exit 1
+
+      - name: Run promptfoo eval
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+          PINECONE_INDEX_NAME: agentforge-guidelines-v1
+          PINECONE_EMBED_MODEL: llama-text-embed-v2
+          PINECONE_RERANK_MODEL: bge-reranker-v2-m3
+          LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+          LANGSMITH_TRACING: 'true'
+          LANGSMITH_PROJECT: agentforge-eval
+          AGENTFORGE_JWT_SECRET: ${{ secrets.AGENTFORGE_JWT_SECRET }}
+          AGENTFORGE_PHI_REDACTION_SALT: ${{ secrets.AGENTFORGE_PHI_REDACTION_SALT }}
+          # Pinned to match local dev (agent/.env.local). Without these the
+          # agent falls back to its code defaults, which drifts from what
+          # the author actually evaluates against day to day.
+          AGENTFORGE_MODEL: anthropic/claude-haiku-4.5
+          AGENTFORGE_SYNTHESIZER_MODEL: anthropic/claude-sonnet-4.6
+          OPENROUTER_VLM_MODEL: anthropic/claude-sonnet-4.5
+        run: |
+          npx promptfoo eval \
+            --config evals/config.yaml \
+            --output .eval-output.json
+        continue-on-error: true
+
+      - name: Run eval gate (compare to baseline)
+        run: |
+          node scripts/eval-gate.mjs \
+            .eval-output.json \
+            evals/baseline.json
+
+      - name: Upload eval output artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agentforge-eval-output
+          path: |
+            agent/.eval-output.json
+            agent/agent.log
+          if-no-files-found: warn
+
+  # Part F — baseline-promotion title check. Any PR that modifies
+  # agent/evals/baseline.json must be titled `promote eval baseline`.
+  # No auto-update; promotion is an explicit, reviewable PR.
+  baseline-promotion-title-check:
+    name: baseline-promotion-title-check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect baseline edits
+        id: detect
+        run: |
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          if git diff --name-only "$base" "$head" | grep -q '^agent/evals/baseline.json$'; then
+            echo "baseline_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "baseline_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Enforce promotion title
+        if: steps.detect.outputs.baseline_changed == 'true'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          if [[ "${PR_TITLE,,}" != promote\ eval\ baseline* ]]; then
+            echo "::error::PRs that modify agent/evals/baseline.json must be titled 'promote eval baseline'. Got: '$PR_TITLE'"
+            exit 1
+          fi
+          echo "Baseline promotion PR title accepted: '$PR_TITLE'"

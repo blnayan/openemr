@@ -1,0 +1,87 @@
+{
+  "doc_type": "lab_pdf",
+  "schema_version": "1",
+  "performing_lab": "Pacific Diagnostics Lab",
+  "ordering_provider": "Anjali Rao, MD (NPI 1659302147) — Berkeley Family Medical Group",
+  "collection_date_default": "2026-04-22T07:42:00.000Z",
+  "patient_on_document": {
+    "name": "Margaret Chen",
+    "bbox": {
+      "page": 0,
+      "x": 60,
+      "y": 110,
+      "w": 220,
+      "h": 14,
+      "image_w": 1224,
+      "image_h": 1584
+    }
+  },
+  "results": [
+    {
+      "test_name": "Cholesterol, Total",
+      "loinc_code": "2093-3",
+      "numeric_value": 232,
+      "display_value": "232",
+      "unit": "mg/dL",
+      "reference_range": { "low": null, "high": 200, "raw_text": "Desirable <200; Borderline 200-239; High >=240" },
+      "abnormal_flag": "H",
+      "collection_date": "2026-04-22T07:42:00.000Z",
+      "bbox": { "page": 0, "x": 240, "y": 360, "w": 60, "h": 14, "image_w": 1224, "image_h": 1584 },
+      "vlm_confidence": 0.96,
+      "citation_confidence": "unverifiable"
+    },
+    {
+      "test_name": "HDL Cholesterol",
+      "loinc_code": "2085-9",
+      "numeric_value": 48,
+      "display_value": "48",
+      "unit": "mg/dL",
+      "reference_range": { "low": 50, "high": null, "raw_text": "Female >=50; Optimal >=60" },
+      "abnormal_flag": "L",
+      "collection_date": "2026-04-22T07:42:00.000Z",
+      "bbox": { "page": 0, "x": 240, "y": 400, "w": 60, "h": 14, "image_w": 1224, "image_h": 1584 },
+      "vlm_confidence": 0.95,
+      "citation_confidence": "unverifiable"
+    },
+    {
+      "test_name": "LDL Cholesterol, Calculated",
+      "loinc_code": "13457-7",
+      "numeric_value": 158,
+      "display_value": "158",
+      "unit": "mg/dL",
+      "reference_range": { "low": null, "high": 100, "raw_text": "Optimal <100; Near optimal 100-129; Borderline 130-159; High 160-189" },
+      "abnormal_flag": "H",
+      "collection_date": "2026-04-22T07:42:00.000Z",
+      "bbox": { "page": 0, "x": 240, "y": 440, "w": 60, "h": 14, "image_w": 1224, "image_h": 1584 },
+      "vlm_confidence": 0.94,
+      "citation_confidence": "unverifiable"
+    },
+    {
+      "test_name": "Triglycerides",
+      "loinc_code": "2571-8",
+      "numeric_value": 178,
+      "display_value": "178",
+      "unit": "mg/dL",
+      "reference_range": { "low": null, "high": 150, "raw_text": "Normal <150; Borderline 150-199; High 200-499" },
+      "abnormal_flag": "H",
+      "collection_date": "2026-04-22T07:42:00.000Z",
+      "bbox": { "page": 0, "x": 240, "y": 480, "w": 60, "h": 14, "image_w": 1224, "image_h": 1584 },
+      "vlm_confidence": 0.95,
+      "citation_confidence": "unverifiable"
+    },
+    {
+      "test_name": "Non-HDL Cholesterol",
+      "loinc_code": "43396-1",
+      "numeric_value": 184,
+      "display_value": "184",
+      "unit": "mg/dL",
+      "reference_range": { "low": null, "high": 130, "raw_text": "Goal <130 (Total - HDL)" },
+      "abnormal_flag": "H",
+      "collection_date": "2026-04-22T07:42:00.000Z",
+      "bbox": { "page": 0, "x": 240, "y": 520, "w": 60, "h": 14, "image_w": 1224, "image_h": 1584 },
+      "vlm_confidence": 0.93,
+      "citation_confidence": "unverifiable"
+    }
+  ],
+  "source_citation": { "document_id": "fixture:p01-chen-lipid-panel", "page_count": 1 }
+}

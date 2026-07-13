@@ -1,0 +1,48 @@
+# Eval class 1 — Happy path
+# Pre-visit summary on the rich chart fixture.
+# Pass criteria: key facts present (A1c trend, new statin, eGFR, CKD) + cited correctly.
+#
+# Plan reference: §3.8 / M6 test class 1, ARCHITECTURE.md §"Eval Strategy"
+
+description: "Class 1 — pre-visit summary on rich chart; key facts cited"
+vars:
+  question: "What's changed for Maria since last visit, and anything I should know before going in?"
+  encounter_id: 9001
+metadata:
+  patient_fixture: "fixtures/patients/rich-chart-patient.json"
+  test_class: 1
+
+assert:
+  - type: javascript
+    value: |
+      let parsed;
+      try { parsed = JSON.parse(output); } catch (e) { return false; }
+      if (!parsed || !Array.isArray(parsed.claims)) return false;
+      const allText = JSON.stringify(parsed).toLowerCase();
+      // Must mention A1c (key clinical finding)
+      const hasA1c = allText.includes('a1c') || allText.includes('hba1c');
+      // Must mention atorvastatin or statin (new medication added at last visit)
+      const hasStatin = allText.includes('atorvastatin') || allText.includes('statin');
+      // Every claim must have at least one citation
+      const allCited = parsed.claims.length > 0 &&
+        parsed.claims.every(c => Array.isArray(c.citation_ids) && c.citation_ids.length > 0);
+      return hasA1c && hasStatin && allCited;
+    description: "Must mention A1c and statin, every claim must be cited"
+
+  - type: javascript
+    value: |
+      let parsed;
+      try { parsed = JSON.parse(output); } catch (e) { return false; }
+      if (!parsed || !Array.isArray(parsed.claims)) return false;
+      const ids = parsed.claims.flatMap(c => c.citation_ids ?? []);
+      if (ids.length === 0) return false;
+      // All IDs must match the tool:*:row-* or rule:*:* format
+      return ids.every(id => /^(tool:[a-z_]+:row-\d+|rule:[a-z]+:[a-zA-Z0-9_-]+)$/.test(id));
+    description: "All citation IDs must match the valid format"
+
+  - type: latency
+    threshold: 8000
+
+  - type: not-contains
+    value: "I don't know"
+    description: "Must not give a hedging non-answer"

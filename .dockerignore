@@ -1,0 +1,58 @@
+.git
+.github
+.gitattributes
+.gitignore
+.idea
+.vscode
+.claude
+.husky
+.devcontainer
+.playwright-mcp
+
+node_modules
+vendor
+**/.phpunit.cache
+**/.phpunit.result.cache
+.phpstan-cache
+.phpunit.cache
+.phpunit.result.cache
+
+# Documentation is not loaded at runtime (~151 MB of HTML/PDF/dev notes).
+Documentation
+
+# Test sources are not needed in the production container.
+tests
+tests/output
+tests/_output
+ci
+
+# AgentForge is its own Railway service built from /agent — the openemr
+# container should never include it. Excluding the whole dir here saves the
+# entire agent/ tree (src, data, scripts, package-lock, etc.) from the
+# openemr build snapshot.
+agent
+
+# Local dev byproducts — multi-GB phpstan/cache.
+# Railway snapshot upload also benefits.
+tmp-phpstan
+
+docker/development-easy
+docker/railway-mirror
+docker/development-easy-light
+docker/development-easy-redis
+docker/development-insane
+docker/library/dockers
+docker/production
+
+docs
+DOCKER_README.md
+README.md
+README-Isolated-Testing.md
+ARCHITECTURE.md
+CHANGELOG.md
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+
+*.log
+*.swp
+*.tmp

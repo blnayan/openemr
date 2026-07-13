@@ -1,0 +1,79 @@
+# UC-4 — Lab-Value Lookup with Trend
+# USERS.md §"Use Case — UC-4"
+#
+# Flow (post-W2): supervisor → ClinicalDataWorker → synthesizer →
+# verifier. Lab-row citations remain `tool:get_recent_labs:row-<n>`.
+
+- description: "UC-4.1 — A1c question cites tool:get_recent_labs:row-… or honest no-A1c response"
+  vars:
+    question: "What's her latest A1c?"
+  assert:
+    - type: javascript
+      value: |
+        if (/tool:get_recent_labs:row-/.test(output)) return true;
+        const claims = [...output.matchAll(/event: claim\ndata: (\{[^\n]+\})/g)];
+        if (claims.length === 0) return true;
+        const conf = output.match(/"confidence"\s*:\s*"(low|medium|high)"/);
+        if (conf && conf[1] === 'low') return true;
+        return (/no a1c|no recent labs|no labs on file/i.test(output)) ? true : { pass: false, reason: 'no labs citation, claims>0, confidence!=low, no absence keyword', score: 0 };
+    # Issue #34 — when the summary mentions a concrete A1c value, it must
+    # be wrapped in markdown bold so the SPA's <strong>-renderer can
+    # highlight it. The rubric vacuously passes on absence-shaped answers.
+    - type: javascript
+      value: file://rubrics/clinicalNumericsBolded.js
+
+- description: "UC-4.2 — lab numeric values render with units; bare integers/decimals without unit fail"
+  vars:
+    question: "What's her latest A1c value and units?"
+  assert:
+    - type: javascript
+      value: |
+        const claims = [...output.matchAll(/event: claim\ndata: (\{[^\n]+\})/g)]
+          .map(m => JSON.parse(m[1]).text);
+        const labClaims = claims.filter(t => /a1c|hba1c|hemoglobin/i.test(t));
+        for (const t of labClaims) {
+          // Skip absence-phrased claims — "no A1c result present", "not found",
+          // "cannot establish trend" — these talk ABOUT A1c without reporting a value.
+          if (/\bno\b|\bnot\b|\bcannot\b|\bcan't\b|absent|none|not\s+(?:on\s+file|present|found)|insufficient/i.test(t)) continue;
+          // Strip dates and "~N most recent" approximations before scanning for a numeric lab value.
+          const stripped = t
+            .replace(/\d{4}-\d{2}-\d{2}/g, '')
+            .replace(/~?\d+\s+most\s+recent/gi, '')
+            .replace(/\(\s*\d+\s*(?:years?|months?|days?|weeks?)\s*ago\s*\)/gi, '');
+          const hasNumericValue = /\b\d+(?:\.\d+)?\b/.test(stripped);
+          if (hasNumericValue && !/%|mg\/dl|mmol\/mol/i.test(t)) {
+            return { pass: false, reason: `lab claim missing unit: '${t}'`, score: 0 };
+          }
+        }
+        return true;
+    # Issue #34 — bolding rubric (see UC-4.1 above).
+    - type: javascript
+      value: file://rubrics/clinicalNumericsBolded.js
+
+- description: "UC-4.3 — trend question describes a trend, refuses, or is structurally low-confidence"
+  vars:
+    question: "Show me her A1c trend over the last year."
+  assert:
+    - type: javascript
+      value: |
+        const lower = output.toLowerCase();
+        const words = ['rising','falling','stable','trending up','trending down','increased','decreased','unchanged','no prior','only one','single value','no a1c','no labs'];
+        if (words.some(w => lower.includes(w))) return true;
+        const claims = [...output.matchAll(/event: claim\ndata: (\{[^\n]+\})/g)];
+        if (claims.length === 0) return true;
+        const conf = output.match(/"confidence"\s*:\s*"(low|medium|high)"/);
+        if (conf && conf[1] === 'low') return true;
+        return { pass: false, reason: 'no trend keyword, claims>0, confidence!=low', score: 0 };
+
+- description: "UC-4.4 — vitamin D lookup cites get_recent_labs, admits absence, or is structurally refusal-shaped"
+  vars:
+    question: "When was her last vitamin D level?"
+  assert:
+    - type: javascript
+      value: |
+        if (/tool:get_recent_labs:row-/.test(output)) return true;
+        const claims = [...output.matchAll(/event: claim\ndata: (\{[^\n]+\})/g)];
+        if (claims.length === 0) return true;
+        const conf = output.match(/"confidence"\s*:\s*"(low|medium|high)"/);
+        if (conf && conf[1] === 'low') return true;
+        return (/no vitamin d|not on file|no record|no recent|no labs/i.test(output)) ? true : { pass: false, reason: 'no labs citation, claims>0, confidence!=low, no absence keyword', score: 0 };

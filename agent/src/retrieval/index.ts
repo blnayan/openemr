@@ -1,0 +1,10 @@
+export { Bm25Index, tokenize } from './bm25.js';
+export type { Bm25Hit, Bm25Options, SerializedBm25 } from './bm25.js';
+export { reciprocalRankFusion } from './rrf.js';
+export type { FusedItem, RankedItem } from './rrf.js';
+export { createRealPineconeClient, TEXT_FIELD } from './pineconeClient.js';
+export type { DenseHit, PineconeClient } from './pineconeClient.js';
+export { createRetriever } from './retriever.js';
+export type { RetrieverDeps } from './retriever.js';
+export { DEFAULT_RETRIEVAL_CONFIG } from './types.js';
+export type { Chunk, RankedChunk, Retriever, RetrievalConfig } from './types.js';

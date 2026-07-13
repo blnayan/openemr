@@ -1,0 +1,42 @@
+{
+  "version": "2025-04",
+  "source": "DDInter v2.0 subset + manual curation — MVP top-50 outpatient interactions",
+  "interactions": [
+    {
+      "id": "warfarin-ibuprofen",
+      "rxnorm_a": "11289",
+      "rxnorm_b": "5640",
+      "severity": "major",
+      "description": "Warfarin + NSAIDs (ibuprofen): increased bleeding risk. Monitor INR closely; consider alternative analgesic."
+    },
+    {
+      "id": "warfarin-aspirin-high",
+      "rxnorm_a": "11289",
+      "rxnorm_b": "1191",
+      "severity": "major",
+      "description": "Warfarin + Aspirin (>100mg): significantly increased bleeding risk."
+    },
+    {
+      "id": "ssri-tramadol",
+      "rxnorm_a": "56795",
+      "rxnorm_b": "41493",
+      "severity": "major",
+      "description": "SSRIs + Tramadol: serotonin syndrome risk. Avoid combination."
+    },
+    {
+      "id": "ace-potassium",
+      "rxnorm_a": "29046",
+      "rxnorm_b": "8871",
+      "severity": "moderate",
+      "description": "ACE inhibitors + potassium supplements: hyperkalemia risk. Monitor potassium levels."
+    },
+    {
+      "id": "metformin-contrast",
+      "rxnorm_a": "6809",
+      "rxnorm_b": "contrast-media",
+      "severity": "major",
+      "description": "Metformin + IV contrast media: lactic acidosis risk. Hold metformin 48h around contrast procedures."
+    }
+  ],
+  "coverage_note": "MVP ships with ~5 representative interactions. Production must expand to full DDInter dataset. Coverage documented in agent/data/ddi-README.md."
+}

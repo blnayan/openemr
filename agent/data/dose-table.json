@@ -1,0 +1,7 @@
+[
+  { "rxnorm": "41493", "drug": "Atorvastatin", "min_mg": 10, "max_mg": 80, "unit": "mg" },
+  { "rxnorm": "301542", "drug": "Rosuvastatin", "min_mg": 5, "max_mg": 40, "unit": "mg" },
+  { "rxnorm": "29046", "drug": "Lisinopril", "min_mg": 5, "max_mg": 40, "unit": "mg" },
+  { "rxnorm": "6809", "drug": "Metformin", "min_mg": 500, "max_mg": 2000, "unit": "mg" },
+  { "rxnorm": "866514", "drug": "Metoprolol succinate", "min_mg": 25, "max_mg": 200, "unit": "mg" }
+]

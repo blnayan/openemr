@@ -1,0 +1,61 @@
+{
+  "doc_type": "lab_pdf",
+  "schema_version": "1",
+  "performing_lab": "Lone Star Laboratories",
+  "ordering_provider": "Luz Castro, MD (NPI 1854209716) — South Lamar Family Medicine",
+  "collection_date_default": "2026-04-18T08:30:00.000Z",
+  "patient_on_document": {
+    "name": "Sofia Reyes",
+    "bbox": {
+      "page": 0,
+      "x": 60,
+      "y": 130,
+      "w": 200,
+      "h": 14,
+      "image_w": 1024,
+      "image_h": 1456
+    }
+  },
+  "results": [
+    {
+      "test_name": "Hemoglobin A1c",
+      "loinc_code": "4548-4",
+      "numeric_value": 8.2,
+      "display_value": "8.2",
+      "unit": "%",
+      "reference_range": { "low": null, "high": 5.7, "raw_text": "<5.7 normal; 5.7-6.4 prediab; >=6.5 diabetes (ADA)" },
+      "abnormal_flag": "H",
+      "collection_date": "2026-04-18T08:30:00.000Z",
+      "bbox": { "page": 0, "x": 240, "y": 320, "w": 50, "h": 14, "image_w": 1024, "image_h": 1456 },
+      "vlm_confidence": 0.92,
+      "citation_confidence": "unverifiable"
+    },
+    {
+      "test_name": "Fasting Glucose",
+      "loinc_code": "1558-6",
+      "numeric_value": 152,
+      "display_value": "152",
+      "unit": "mg/dL",
+      "reference_range": { "low": 70, "high": 99, "raw_text": "70 - 99 fasting (ADA)" },
+      "abnormal_flag": "H",
+      "collection_date": "2026-04-18T08:30:00.000Z",
+      "bbox": { "page": 0, "x": 240, "y": 360, "w": 50, "h": 14, "image_w": 1024, "image_h": 1456 },
+      "vlm_confidence": 0.91,
+      "citation_confidence": "unverifiable"
+    },
+    {
+      "test_name": "eGFR (MDRD)",
+      "loinc_code": "33914-3",
+      "numeric_value": 88,
+      "display_value": "88",
+      "unit": "mL/min/1.73m2",
+      "reference_range": { "low": 60, "high": null, "raw_text": ">=60 (KDIGO)" },
+      "abnormal_flag": "N",
+      "collection_date": "2026-04-18T08:30:00.000Z",
+      "bbox": { "page": 0, "x": 240, "y": 400, "w": 50, "h": 14, "image_w": 1024, "image_h": 1456 },
+      "vlm_confidence": 0.9,
+      "citation_confidence": "unverifiable"
+    }
+  ],
+  "source_citation": { "document_id": "fixture:p03-reyes-hba1c", "page_count": 1 }
+}

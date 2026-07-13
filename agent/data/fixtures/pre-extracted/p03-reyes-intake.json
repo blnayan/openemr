@@ -1,0 +1,65 @@
+{
+  "doc_type": "intake_form",
+  "schema_version": "1",
+  "demographics": {
+    "name": "Sofia M. Reyes",
+    "dob": "1983-12-19",
+    "sex": "F",
+    "bbox_per_field": {
+      "name": { "page": 0, "x": 130, "y": 180, "w": 200, "h": 14, "image_w": 1024, "image_h": 1456 },
+      "dob":  { "page": 0, "x": 130, "y": 200, "w": 120, "h": 14, "image_w": 1024, "image_h": 1456 },
+      "sex":  { "page": 0, "x": 130, "y": 220, "w": 60,  "h": 14, "image_w": 1024, "image_h": 1456 }
+    }
+  },
+  "chief_concern": {
+    "text": "Blurry vision R eye + numbness in toes ~3 weeks. Worried about diabetes complications.",
+    "bbox": { "page": 0, "x": 60, "y": 320, "w": 440, "h": 28, "image_w": 1024, "image_h": 1456 }
+  },
+  "current_medications": [
+    {
+      "name": "Metformin",
+      "dose": "1000 mg",
+      "frequency": "twice daily",
+      "route": "PO",
+      "is_otc_or_supplement": false,
+      "bbox": { "page": 0, "x": 60, "y": 540, "w": 440, "h": 14, "image_w": 1024, "image_h": 1456 }
+    },
+    {
+      "name": "Ozempic (semaglutide)",
+      "dose": "1 mg",
+      "frequency": "weekly SC",
+      "route": "SC",
+      "is_otc_or_supplement": false,
+      "bbox": { "page": 0, "x": 60, "y": 560, "w": 440, "h": 14, "image_w": 1024, "image_h": 1456 }
+    },
+    {
+      "name": "Sertraline",
+      "dose": null,
+      "frequency": "daily",
+      "route": "PO",
+      "is_otc_or_supplement": false,
+      "bbox": { "page": 0, "x": 60, "y": 580, "w": 440, "h": 14, "image_w": 1024, "image_h": 1456 }
+    }
+  ],
+  "allergies": [
+    {
+      "substance": "Ibuprofen",
+      "reaction": "GI bleed",
+      "severity": "severe",
+      "bbox": { "page": 0, "x": 60, "y": 660, "w": 440, "h": 14, "image_w": 1024, "image_h": 1456 }
+    }
+  ],
+  "family_history": [
+    {
+      "relation": "mother",
+      "conditions": ["Type 2 diabetes"],
+      "bbox": { "page": 0, "x": 60, "y": 740, "w": 440, "h": 14, "image_w": 1024, "image_h": 1456 }
+    },
+    {
+      "relation": "sibling",
+      "conditions": ["Gestational diabetes"],
+      "bbox": { "page": 0, "x": 60, "y": 760, "w": 440, "h": 14, "image_w": 1024, "image_h": 1456 }
+    }
+  ],
+  "source_citation": { "document_id": "fixture:p03-reyes-intake", "page_count": 1 }
+}

@@ -1,0 +1,80 @@
+# UC-6 — Vital-Trend Snapshot
+# USERS.md §"Use Case — UC-6"
+#
+# Flow (post-W2): supervisor → ClinicalDataWorker → synthesizer →
+# verifier. Vital-row citations remain `tool:get_vitals:row-<n>`.
+
+- description: "UC-6.1 — BP question cites tool:get_vitals:row-…, admits absence, or is structurally refusal-shaped"
+  vars:
+    question: "Last three BP readings?"
+  assert:
+    - type: javascript
+      value: |
+        if (/tool:get_vitals:row-/.test(output)) return true;
+        const claims = [...output.matchAll(/event: claim\ndata: (\{[^\n]+\})/g)];
+        if (claims.length === 0) return true;
+        const conf = output.match(/"confidence"\s*:\s*"(low|medium|high)"/);
+        if (conf && conf[1] === 'low') return true;
+        return (/no bp|no blood pressure|no vital|no recent vital/i.test(output)) ? true : { pass: false, reason: 'no vitals citation, claims>0, confidence!=low, no absence keyword', score: 0 };
+    # Issue #34 — concrete BP readings in the summary must be wrapped in
+    # markdown bold so the SPA's <strong>-renderer can highlight them.
+    # Vacuously passes on absence-shaped answers.
+    - type: javascript
+      value: file://rubrics/clinicalNumericsBolded.js
+
+- description: "UC-6.2 — every vital claim text containing a numeric BP includes a YYYY-MM-DD date"
+  vars:
+    question: "Last three BP readings with dates."
+  assert:
+    - type: javascript
+      value: |
+        const claims = [...output.matchAll(/event: claim\ndata: (\{[^\n]+\})/g)]
+          .map(m => JSON.parse(m[1]));
+        for (const c of claims) {
+          if (/\b\d{2,3}\/\d{2,3}\b/.test(c.text)) {
+            if (!/\d{4}-\d{2}-\d{2}/.test(c.text)) return { pass: false, reason: `BP claim missing date: '${c.text}'`, score: 0 };
+          }
+        }
+        return true;
+
+- description: "UC-6.3 — every numeric BP reading carries a tool:get_vitals:row-… citation (no fabrication)"
+  vars:
+    question: "Give me every BP reading from the last week."
+  assert:
+    - type: javascript
+      value: |
+        const claims = [...output.matchAll(/event: claim\ndata: (\{[^\n]+\})/g)]
+          .map(m => JSON.parse(m[1]));
+        for (const c of claims) {
+          if (/\b\d{2,3}\/\d{2,3}\b/.test(c.text)) {
+            const ok = (c.citation_ids || []).some(id => id.startsWith('tool:get_vitals:row-'));
+            if (!ok) return { pass: false, reason: `uncited BP reading: '${c.text}'`, score: 0 };
+          }
+        }
+        return true;
+
+- description: "UC-6.4 — weight numeric values render with units (kg / lb / lbs)"
+  vars:
+    question: "What's her weight trend over the last 6 months?"
+  assert:
+    - type: javascript
+      value: |
+        const claims = [...output.matchAll(/event: claim\ndata: (\{[^\n]+\})/g)]
+          .map(m => JSON.parse(m[1]).text);
+        for (const t of claims) {
+          if (!/\bweight\b/i.test(t)) continue;
+          // Skip absence-phrased claims — "no weight measurements", "cannot be used",
+          // "insufficient data" etc. These talk ABOUT weight without reporting a value.
+          if (/\bno\b|\bnot\b|\bcannot\b|\bcan't\b|absent|none|no record|no measurement|insufficient/i.test(t)) continue;
+          // Strip ISO dates and "(N years/months ago)" parentheticals before checking
+          // for a numeric weight value.
+          const stripped = t
+            .replace(/\d{4}-\d{2}-\d{2}/g, '')
+            .replace(/\(\s*\d+\s*(?:years?|months?|days?|weeks?)\s*ago\s*\)/gi, '');
+          const hasNumericValue = /\b\d+(?:\.\d+)?\b/.test(stripped);
+          if (!hasNumericValue) continue;
+          if (!/(kg|lb|lbs|pound|kilogram)/i.test(t)) {
+            return { pass: false, reason: `weight without unit: '${t}'`, score: 0 };
+          }
+        }
+        return true;

@@ -1,0 +1,113 @@
+{
+  "doc_type": "lab_pdf",
+  "schema_version": "1",
+  "performing_lab": "Desert Southwest Reference Lab",
+  "ordering_provider": "Neela Patel, MD (NPI 1750284113) — Sandia Foothills Internal Medicine",
+  "collection_date_default": "2026-04-21T09:08:00.000Z",
+  "patient_on_document": {
+    "name": "James Whitaker",
+    "bbox": {
+      "page": 0,
+      "x": 60,
+      "y": 130,
+      "w": 220,
+      "h": 14,
+      "image_w": 1224,
+      "image_h": 1584
+    }
+  },
+  "results": [
+    {
+      "test_name": "WBC",
+      "loinc_code": "6690-2",
+      "numeric_value": 5.4,
+      "display_value": "5.4",
+      "unit": "10^3/uL",
+      "reference_range": { "low": 3.4, "high": 9.6, "raw_text": "3.4 - 9.6" },
+      "abnormal_flag": "N",
+      "collection_date": "2026-04-21T09:08:00.000Z",
+      "bbox": { "page": 0, "x": 240, "y": 360, "w": 50, "h": 14, "image_w": 1224, "image_h": 1584 },
+      "vlm_confidence": 0.96,
+      "citation_confidence": "unverifiable"
+    },
+    {
+      "test_name": "RBC",
+      "loinc_code": "789-8",
+      "numeric_value": 3.78,
+      "display_value": "3.78",
+      "unit": "10^6/uL",
+      "reference_range": { "low": 4.35, "high": 5.65, "raw_text": "4.35 - 5.65" },
+      "abnormal_flag": "L",
+      "collection_date": "2026-04-21T09:08:00.000Z",
+      "bbox": { "page": 0, "x": 240, "y": 380, "w": 50, "h": 14, "image_w": 1224, "image_h": 1584 },
+      "vlm_confidence": 0.95,
+      "citation_confidence": "unverifiable"
+    },
+    {
+      "test_name": "Hemoglobin",
+      "loinc_code": "718-7",
+      "numeric_value": 11.1,
+      "display_value": "11.1",
+      "unit": "g/dL",
+      "reference_range": { "low": 13.2, "high": 16.6, "raw_text": "13.2 - 16.6" },
+      "abnormal_flag": "L",
+      "collection_date": "2026-04-21T09:08:00.000Z",
+      "bbox": { "page": 0, "x": 240, "y": 400, "w": 50, "h": 14, "image_w": 1224, "image_h": 1584 },
+      "vlm_confidence": 0.96,
+      "citation_confidence": "unverifiable"
+    },
+    {
+      "test_name": "Hematocrit",
+      "loinc_code": "4544-3",
+      "numeric_value": 33.5,
+      "display_value": "33.5",
+      "unit": "%",
+      "reference_range": { "low": 38.3, "high": 48.6, "raw_text": "38.3 - 48.6" },
+      "abnormal_flag": "L",
+      "collection_date": "2026-04-21T09:08:00.000Z",
+      "bbox": { "page": 0, "x": 240, "y": 420, "w": 50, "h": 14, "image_w": 1224, "image_h": 1584 },
+      "vlm_confidence": 0.95,
+      "citation_confidence": "unverifiable"
+    },
+    {
+      "test_name": "MCV",
+      "loinc_code": "787-2",
+      "numeric_value": 88.6,
+      "display_value": "88.6",
+      "unit": "fL",
+      "reference_range": { "low": 78.2, "high": 97.9, "raw_text": "78.2 - 97.9" },
+      "abnormal_flag": "N",
+      "collection_date": "2026-04-21T09:08:00.000Z",
+      "bbox": { "page": 0, "x": 240, "y": 440, "w": 50, "h": 14, "image_w": 1224, "image_h": 1584 },
+      "vlm_confidence": 0.94,
+      "citation_confidence": "unverifiable"
+    },
+    {
+      "test_name": "Platelets",
+      "loinc_code": "777-3",
+      "numeric_value": 248,
+      "display_value": "248",
+      "unit": "10^3/uL",
+      "reference_range": { "low": 135, "high": 317, "raw_text": "135 - 317" },
+      "abnormal_flag": "N",
+      "collection_date": "2026-04-21T09:08:00.000Z",
+      "bbox": { "page": 0, "x": 240, "y": 460, "w": 50, "h": 14, "image_w": 1224, "image_h": 1584 },
+      "vlm_confidence": 0.95,
+      "citation_confidence": "unverifiable"
+    },
+    {
+      "test_name": "Neutrophils %",
+      "loinc_code": "770-8",
+      "numeric_value": 62.3,
+      "display_value": "62.3",
+      "unit": "%",
+      "reference_range": { "low": 40, "high": 70, "raw_text": "40 - 70" },
+      "abnormal_flag": "N",
+      "collection_date": "2026-04-21T09:08:00.000Z",
+      "bbox": { "page": 0, "x": 240, "y": 480, "w": 50, "h": 14, "image_w": 1224, "image_h": 1584 },
+      "vlm_confidence": 0.94,
+      "citation_confidence": "unverifiable"
+    }
+  ],
+  "source_citation": { "document_id": "fixture:p02-whitaker-cbc", "page_count": 1 }
+}

@@ -1,0 +1,7 @@
+tests
+promptfoo
+coverage
+*.log
+.env
+.env.local
+.env.*.local

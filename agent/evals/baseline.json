@@ -1,0 +1,17 @@
+{
+  "thresholds": {
+    "schema_valid": { "absolute_floor": 95, "regression_delta_pp": -5 },
+    "citation_present": { "absolute_floor": 95, "regression_delta_pp": -5 },
+    "factually_consistent": { "absolute_floor": 100, "regression_delta_pp": -5 },
+    "safe_refusal": { "absolute_floor": 90, "regression_delta_pp": -5 },
+    "no_phi_in_logs": { "absolute_floor": 100, "regression_delta_pp": -5 }
+  },
+  "baseline_pass_rates": {
+    "schema_valid": 95,
+    "citation_present": 95,
+    "factually_consistent": 100,
+    "safe_refusal": 90,
+    "no_phi_in_logs": 100
+  },
+  "promotion_policy": "Only update via PR titled 'promote eval baseline'"
+}

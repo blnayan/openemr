@@ -1,0 +1,68 @@
+# UC-2 — What Changed Since Last Visit (delta over anchor)
+# USERS.md §"Use Case — UC-2"
+#
+# Flow (post-W2): question → supervisor → ClinicalDataWorker (wraps the
+# Week 1 graph: router → planner → tools → formatter) → synthesizer →
+# verifier → SSE. Patient-record citations are still emitted as
+# `tool:<name>:row-<n>` strings (preserved by the formatter), so the
+# regex-based assertions below remain correct.
+
+- description: "UC-2.1 — 'what's changed since last visit?' calls get_recent_encounters, surfaces anchor, or cites a patient document"
+  vars:
+    question: "What's changed since her last visit?"
+  assert:
+    - type: javascript
+      value: |
+        const encCalled = /tool:get_recent_encounters:row-/.test(output);
+        const conv = JSON.parse((output.match(/event: conversation\ndata: (\{[^\n]+\})/) || [,'{}'])[1]);
+        // Accept patient-document citations (`doc:lab-1`, `doc:intake-2`, …)
+        // as evidence of "what changed" — that's what the W2 Document
+        // Inbox feature exists for. Without this branch, the rubric
+        // treats a doc-cited delta as a failure even though it's the
+        // most evidence-grounded answer the agent can give.
+        const docCited = /doc:[a-z]+-\d+/.test(output);
+        return (encCalled || docCited || (conv.anchor !== null && conv.anchor !== undefined))
+          ? true
+          : { pass: false, reason: 'expected get_recent_encounters citation, doc:* citation, or anchor', score: 0 };
+
+- description: "UC-2.2 — delta question cites a tool, a patient document, or surfaces honest absence"
+  vars:
+    question: "Anything new since I last saw her?"
+  assert:
+    - type: javascript
+      value: |
+        const tools = ['get_recent_labs','get_medications','get_active_problems','get_vitals','get_recent_encounters'];
+        for (const t of tools) {
+          if (output.includes(`tool:${t}:row-`)) return true;
+        }
+        // W2 path: a doc:<kind>-<id> citation grounds the delta on a
+        // patient-uploaded document (lab PDF, intake form). Same
+        // evidence quality bar as the tool path.
+        if (/doc:[a-z]+-\d+/.test(output)) return true;
+        // Structural absence: zero claims or low-confidence answer is an honest "I don't have a delta to report".
+        const claims = [...output.matchAll(/event: claim\ndata: (\{[^\n]+\})/g)];
+        if (claims.length === 0) return true;
+        const conf = output.match(/"confidence"\s*:\s*"(low|medium|high)"/);
+        if (conf && conf[1] === 'low') return true;
+        return (/no prior visit|no previous encounter|first visit/i.test(output)) ? true : { pass: false, reason: 'no delta-relevant tool citation, doc:* citation, claims>0, confidence!=low, no absence keyword', score: 0 };
+
+- description: "UC-2.3 — anchor date when present is ISO YYYY-MM-DD"
+  vars:
+    question: "What's different from the last note?"
+  assert:
+    - type: javascript
+      value: |
+        const c = JSON.parse((output.match(/event: conversation\ndata: (\{[^\n]+\})/) || [,'{}'])[1]);
+        if (c.anchor === null || c.anchor === undefined) return true;
+        return (/^\d{4}-\d{2}-\d{2}$/.test(c.anchor)) ? true : { pass: false, reason: `bad anchor: ${c.anchor}`, score: 0 };
+
+- description: "UC-2.4 — date-style follow-up does not trigger refusal (no 'I cannot help' / 'out of scope' substrings)"
+  vars:
+    question: "What's changed since 2026-03-12?"
+  assert:
+    - type: not-contains
+      value: "I cannot help"
+    - type: not-contains
+      value: "I'm scoped to"
+    - type: contains
+      value: "event: done"

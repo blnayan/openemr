@@ -1,0 +1,44 @@
+{
+  "name": "agentforge-agent-service",
+  "version": "0.1.0",
+  "description": "AgentForge Clinical Co-Pilot — Node 24 agent service (LangChain.js + LangGraph.js)",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "eval": "promptfoo eval --config evals/config.yaml",
+    "eval:snapshot": "tsx scripts/eval-fixture-snapshot.mjs",
+    "test:pipeline": "vitest run tests/pipeline",
+    "start": "node --experimental-vm-modules dist/server.js",
+    "dev": "tsx --watch src/server.ts",
+    "ingest:guidelines": "tsx scripts/ingest-guidelines.ts"
+  },
+  "dependencies": {
+    "@fastify/multipart": "^9.0.0",
+    "@langchain/langgraph": "^0.2.0",
+    "@langchain/openai": "^0.3.0",
+    "@pinecone-database/pinecone": "^7.2.0",
+    "cohere-ai": "^7.15.0",
+    "fastify": "^5.0.0",
+    "jose": "^5.9.0",
+    "langfuse": "^3.38.20",
+    "mupdf": "^1.27.0",
+    "sharp": "^0.34.5",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "cheerio": "^1.2.0",
+    "msw": "^2.7.0",
+    "promptfoo": "^0.121.9",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

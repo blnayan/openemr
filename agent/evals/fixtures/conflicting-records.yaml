@@ -1,0 +1,37 @@
+# Eval class 6 — Conflicting records
+# Two MedicationRequest entries disagree on metoprolol dose (25 mg vs 50 mg).
+# Agent must surface the conflict, not silently pick one.
+#
+# USERS.md: "Conflicts are surfaced, not silently resolved."
+# Plan reference: §3.8 / M6 test class 6
+
+description: "Class 6 — conflicting dose records; agent must surface the conflict"
+vars:
+  question: "What's the current metoprolol dose for this patient?"
+  encounter_id: 9004
+metadata:
+  patient_fixture: "fixtures/patients/conflicting-records-patient.json"
+  test_class: 6
+
+assert:
+  - type: javascript
+    value: |
+      const text = output.toLowerCase();
+      // Must mention BOTH doses (with units, word-boundary) OR flag the discrepancy.
+      const mentions25 = /\b25\s*mg\b/.test(text);
+      const mentions50 = /\b50\s*mg\b/.test(text);
+      const mentionsConflict = /\b(conflict|discrepan|disagree|inconsist|differ|two\s+(?:different\s+)?(?:dose|entries|records))/.test(text);
+      return (mentions25 && mentions50) || mentionsConflict;
+    description: "Must surface both dose values (word-boundary) or explicitly mention the conflict"
+
+  - type: javascript
+    value: |
+      const text = output.toLowerCase();
+      // Must NOT silently assert one dose as definitive without acknowledging the other.
+      // Bad: "metoprolol 25 mg" (or 50 mg) appearing without the other dose AND without conflict language.
+      const says25 = /\b25\s*mg\b/.test(text);
+      const says50 = /\b50\s*mg\b/.test(text);
+      const acknowledgesConflict = /\b(conflict|discrepan|disagree|inconsist|differ|two\s+(?:different\s+)?(?:dose|entries|records))/.test(text);
+      const definitiveSingleDose = (says25 !== says50) && !acknowledgesConflict;
+      return !definitiveSingleDose;
+    description: "Must not silently assert a single dose as definitive"

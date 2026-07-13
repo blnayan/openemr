@@ -1,0 +1,15 @@
+node_modules
+dist
+*.log
+.env
+.env.local
+.env.*.local
+tests
+promptfoo
+coverage
+.git
+.github
+README.md
+*.tsbuildinfo
+# Dev-only — production passes the private key via OPENEMR_FHIR_PRIVATE_KEY_PEM
+secrets/

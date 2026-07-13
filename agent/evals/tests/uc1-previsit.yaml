@@ -1,0 +1,117 @@
+# UC-1 — The Between-Rooms Pre-Visit Pull (mode=previsit, zero-input)
+# USERS.md §"Use Case — UC-1"
+#
+# Flow: previsit mode bypasses the supervisor and runs the deterministic
+# `streamPrevisitSections` path directly (chat.ts). The 12s latency
+# assertions below assume that path; the supervisor + workers flow only
+# fires on mode=followup (UC-2..UC-7, safety, conversations).
+#
+# Pass criteria covered:
+#   1. Three sections in fixed order (actionItems → activeProblems → currentMedications)
+#   2. Anchor on a concrete date (last visit Nd ago, YYYY-MM-DD) or null
+#   3. Every claim carries a citation chip (tool:<name>:row-… | rule:<kind>:…)
+#   4. Empty sections render explicit absence — never silently omitted
+#   5. P95 latency under deterministic-path budget
+#   6. mode=previsit and a uuid conversation_id
+
+- description: "UC-1.1 — pre-visit emits exactly 3 sections in fixed order: actionItems → activeProblems → currentMedications"
+  vars:
+    question: "Brief pre-visit triage glance."
+    mode: "previsit"
+  assert:
+    - type: javascript
+      value: |
+        const keys = [...output.matchAll(/event: section\ndata: (\{[^\n]+\})/g)]
+          .map(m => JSON.parse(m[1]).key);
+        const expected = ['actionItems', 'activeProblems', 'currentMedications'];
+        return (JSON.stringify(keys) === JSON.stringify(expected)) ? true : { pass: false, reason: `keys=${JSON.stringify(keys)} expected=${JSON.stringify(expected)}`, score: 0 };
+
+- description: "UC-1.2 — pre-visit conversation event includes anchor in YYYY-MM-DD or null"
+  vars:
+    question: "Brief pre-visit triage glance."
+    mode: "previsit"
+  assert:
+    - type: javascript
+      value: |
+        const m = output.match(/event: conversation\ndata: (\{[^\n]+\})/);
+        if (!m) return { pass: false, reason: 'no conversation event', score: 0 };
+        const c = JSON.parse(m[1]);
+        if (c.anchor === null) return true;
+        return (/^\d{4}-\d{2}-\d{2}$/.test(c.anchor)) ? true : { pass: false, reason: `bad anchor: ${c.anchor}`, score: 0 };
+    - type: latency
+      threshold: 12000
+
+- description: "UC-1.3 — every claim in pre-visit carries a citation matching tool:<name>:row-… , rule:<kind>:… , or doc:(intake|lab)-<id>"
+  vars:
+    question: "Brief pre-visit triage glance."
+    mode: "previsit"
+  assert:
+    - type: javascript
+      value: |
+        const claims = [...output.matchAll(/event: claim\ndata: (\{[^\n]+\})/g)]
+          .map(m => JSON.parse(m[1]));
+        const allowedTools = ['get_patient_summary','get_active_problems','get_medications','get_recent_labs','get_vitals','get_allergies','get_recent_encounters','check_drug_interactions'];
+        for (const c of claims) {
+          const ids = c.citation_ids || [];
+          if (ids.length === 0) return { pass: false, reason: `uncited claim: ${c.text}`, score: 0 };
+          for (const id of ids) {
+            const tm = id.match(/^tool:([a-z_]+):row-[\w-]+$/);
+            // rule slugs accept dots and slashes (guideline section IDs like "6.3a") per agent commit e0d289784
+            const rm = id.match(/^rule:[a-z][\w-]*:[\w./-]+$/);
+            // doc:intake-<id> emitted on previsit medications (agent commit 844644541); doc:lab-<id> on lab claims
+            const dm = id.match(/^doc:(intake|lab)-\d+$/);
+            if (tm && !allowedTools.includes(tm[1])) return { pass: false, reason: `unknown tool in citation: ${id}`, score: 0 };
+            if (!tm && !rm && !dm) return { pass: false, reason: `bad citation id: ${id}`, score: 0 };
+          }
+        }
+        return true;
+
+- description: "UC-1.4 — empty section emits empty=true and empty_message explicitly declares absence (non-silent omission)"
+  vars:
+    question: "Brief pre-visit triage glance."
+    mode: "previsit"
+  assert:
+    - type: javascript
+      value: |
+        const sections = [...output.matchAll(/event: section\ndata: (\{[^\n]+\})/g)]
+          .map(m => JSON.parse(m[1]));
+        for (const s of sections) {
+          if (s.empty === true) {
+            const msg = s.empty_message;
+            if (typeof msg !== 'string' || msg.length === 0) {
+              return { pass: false, reason: `section ${s.key} empty but no empty_message`, score: 0 };
+            }
+            if (!/^(No |Nothing|None )/i.test(msg) && !/no (active|prior|new|recent|known)/i.test(msg)) {
+              return { pass: false, reason: `section ${s.key} empty_message does not declare absence: '${msg}'`, score: 0 };
+            }
+          }
+        }
+        return true;
+
+- description: "UC-1.5 — pre-visit terminates with exactly one event: done"
+  vars:
+    question: "Brief pre-visit triage glance."
+    mode: "previsit"
+  assert:
+    - type: javascript
+      value: |
+        const dones = (output.match(/event: done/g) || []).length;
+        return (dones === 1) ? true : { pass: false, reason: `expected 1 done event, got ${dones}`, score: 0 };
+    - type: latency
+      threshold: 12000
+
+- description: "UC-1.6 — pre-visit conversation event reports mode=previsit and a uuid conversation_id"
+  vars:
+    question: "Brief pre-visit triage glance."
+    mode: "previsit"
+  assert:
+    - type: javascript
+      value: |
+        const m = output.match(/event: conversation\ndata: (\{[^\n]+\})/);
+        if (!m) return { pass: false, reason: 'no conversation event', score: 0 };
+        const c = JSON.parse(m[1]);
+        if (c.mode !== 'previsit') return { pass: false, reason: `mode=${c.mode}`, score: 0 };
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(c.conversation_id ?? '')) {
+          return { pass: false, reason: `bad conversation_id: ${c.conversation_id}`, score: 0 };
+        }
+        return true;

@@ -1,0 +1,187 @@
+{
+  "patient_uuid": "test-patient-maria-001",
+  "pid": 9001,
+  "description": "Rich chart fixture — Dr. M's patient Maria González, 58F, diabetes + HTN follow-up",
+  "fhir_mocks": {
+    "/Patient/test-patient-maria-001": {
+      "resourceType": "Patient",
+      "id": "test-patient-maria-001",
+      "name": [{ "use": "official", "family": "González", "given": ["Maria"] }],
+      "birthDate": "1968-04-15",
+      "gender": "female"
+    },
+    "/Condition?patient=test-patient-maria-001&clinical-status=active": {
+      "resourceType": "Bundle",
+      "type": "searchset",
+      "entry": [
+        {
+          "resource": {
+            "resourceType": "Condition",
+            "id": "cond-diabetes",
+            "clinicalStatus": { "coding": [{ "code": "active" }] },
+            "code": { "coding": [{ "system": "http://snomed.info/sct", "code": "73211009", "display": "Diabetes mellitus type 2" }], "text": "Type 2 Diabetes" },
+            "onsetDateTime": "2018-03-01"
+          }
+        },
+        {
+          "resource": {
+            "resourceType": "Condition",
+            "id": "cond-htn",
+            "clinicalStatus": { "coding": [{ "code": "active" }] },
+            "code": { "coding": [{ "system": "http://snomed.info/sct", "code": "38341003", "display": "Hypertension" }], "text": "Hypertension" },
+            "onsetDateTime": "2015-06-12"
+          }
+        },
+        {
+          "resource": {
+            "resourceType": "Condition",
+            "id": "cond-ckd",
+            "clinicalStatus": { "coding": [{ "code": "active" }] },
+            "code": { "coding": [{ "system": "http://snomed.info/sct", "code": "709044004", "display": "CKD stage 3a" }], "text": "CKD stage 3a" },
+            "onsetDateTime": "2022-01-10"
+          }
+        }
+      ]
+    },
+    "/MedicationRequest?patient=test-patient-maria-001&status=active": {
+      "resourceType": "Bundle",
+      "type": "searchset",
+      "entry": [
+        {
+          "resource": {
+            "resourceType": "MedicationRequest",
+            "id": "med-metformin",
+            "status": "active",
+            "medicationCodeableConcept": {
+              "coding": [{ "system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "6809", "display": "Metformin" }],
+              "text": "Metformin 500 mg"
+            },
+            "dosageInstruction": [{ "text": "500 mg twice daily" }]
+          }
+        },
+        {
+          "resource": {
+            "resourceType": "MedicationRequest",
+            "id": "med-atorvastatin",
+            "status": "active",
+            "medicationCodeableConcept": {
+              "coding": [{ "system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "41493", "display": "Atorvastatin" }],
+              "text": "Atorvastatin 40 mg"
+            },
+            "dosageInstruction": [{ "text": "40 mg once daily" }],
+            "authoredOn": "2026-03-12"
+          }
+        },
+        {
+          "resource": {
+            "resourceType": "MedicationRequest",
+            "id": "med-lisinopril",
+            "status": "active",
+            "medicationCodeableConcept": {
+              "coding": [{ "system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "29046", "display": "Lisinopril" }],
+              "text": "Lisinopril 10 mg"
+            },
+            "dosageInstruction": [{ "text": "10 mg once daily" }]
+          }
+        }
+      ]
+    },
+    "/AllergyIntolerance?patient=test-patient-maria-001": {
+      "resourceType": "Bundle",
+      "type": "searchset",
+      "entry": [
+        {
+          "resource": {
+            "resourceType": "AllergyIntolerance",
+            "id": "allergy-sulfa",
+            "code": { "coding": [{ "code": "372687004", "display": "Sulfonamide" }], "text": "Sulfa drugs" },
+            "criticality": "high",
+            "clinicalStatus": { "coding": [{ "code": "active" }] }
+          }
+        }
+      ]
+    },
+    "/Observation?patient=test-patient-maria-001&category=laboratory&_sort=-date&_count=50": {
+      "resourceType": "Bundle",
+      "type": "searchset",
+      "entry": [
+        {
+          "resource": {
+            "resourceType": "Observation",
+            "id": "obs-a1c-2",
+            "code": { "coding": [{ "system": "http://loinc.org", "code": "4548-4", "display": "HbA1c" }] },
+            "valueQuantity": { "value": 8.1, "unit": "%", "code": "%" },
+            "effectiveDateTime": "2026-03-09",
+            "status": "final"
+          }
+        },
+        {
+          "resource": {
+            "resourceType": "Observation",
+            "id": "obs-a1c-1",
+            "code": { "coding": [{ "system": "http://loinc.org", "code": "4548-4", "display": "HbA1c" }] },
+            "valueQuantity": { "value": 7.4, "unit": "%", "code": "%" },
+            "effectiveDateTime": "2025-12-15",
+            "status": "final"
+          }
+        },
+        {
+          "resource": {
+            "resourceType": "Observation",
+            "id": "obs-egfr",
+            "code": { "coding": [{ "system": "http://loinc.org", "code": "48642-3", "display": "eGFR" }] },
+            "valueQuantity": { "value": 48, "unit": "mL/min/1.73m2" },
+            "effectiveDateTime": "2026-03-09",
+            "status": "final"
+          }
+        }
+      ]
+    },
+    "/Observation?patient=test-patient-maria-001&category=vital-signs&_sort=-date&_count=20": {
+      "resourceType": "Bundle",
+      "type": "searchset",
+      "entry": [
+        {
+          "resource": {
+            "resourceType": "Observation",
+            "id": "obs-bp",
+            "code": { "coding": [{ "system": "http://loinc.org", "code": "55284-4", "display": "Blood Pressure" }] },
+            "component": [
+              { "code": { "coding": [{ "code": "8480-6", "display": "Systolic" }] }, "valueQuantity": { "value": 138, "unit": "mmHg" } },
+              { "code": { "coding": [{ "code": "8462-4", "display": "Diastolic" }] }, "valueQuantity": { "value": 88, "unit": "mmHg" } }
+            ],
+            "effectiveDateTime": "2026-04-15",
+            "status": "final"
+          }
+        }
+      ]
+    },
+    "/Encounter?patient=test-patient-maria-001&_sort=-date&_count=10": {
+      "resourceType": "Bundle",
+      "type": "searchset",
+      "entry": [
+        {
+          "resource": {
+            "resourceType": "Encounter",
+            "id": "enc-50",
+            "status": "planned",
+            "class": { "code": "AMB" },
+            "type": [{ "text": "3-month diabetes follow-up" }],
+            "period": { "start": "2026-04-29" }
+          }
+        },
+        {
+          "resource": {
+            "resourceType": "Encounter",
+            "id": "enc-42",
+            "status": "finished",
+            "class": { "code": "AMB" },
+            "type": [{ "text": "Routine follow-up" }],
+            "participant": [{ "individual": { "display": "Dr. Patel" } }],
+            "period": { "start": "2026-03-12", "end": "2026-03-12" }
+          }
+        }
+      ]
+    }
+  }
+}

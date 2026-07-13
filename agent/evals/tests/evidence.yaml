@@ -1,0 +1,358 @@
+# EVIDENCE — guideline-retrieval cases against the ADA Standards of
+# Care 2026 corpus (515 chunks, see agent/data/corpus/).
+#
+# Coverage: every ADA chapter 1..16, with extra weight on high-leverage
+# chapters (9 pharmacology, 10 cardiovascular, 11 CKD).
+#
+# Assertions:
+#   1. schema_valid       — response parses as AnswerSchema.
+#   2. citation_present   — every claim carries at least one citation.
+#   3. factually_consistent — every guideline citation's quoted_span is
+#                              a substring of the chunk body it names.
+#
+# All assertions are deterministic JS; no LLM judges anywhere.
+
+- description: "EVIDENCE-1 — improving care: SDOH screening (chapter 1)"
+  vars:
+    question: "Does the ADA recommend screening for social determinants of health in people with diabetes, and what domains are included?"
+    mode: "followup"
+  assert:
+    - type: javascript
+      value: file://rubrics/schemaValid.js
+      metric: schema_valid
+    - type: javascript
+      value: file://rubrics/citationPresent.js
+      metric: citation_present
+    - type: javascript
+      value: file://rubrics/factuallyConsistent.js
+      metric: factually_consistent
+
+- description: "EVIDENCE-2 — diagnostic criteria for diabetes (chapter 2)"
+  vars:
+    question: "What plasma-glucose-based criteria does the ADA use to diagnose diabetes?"
+    mode: "followup"
+  assert:
+    - type: javascript
+      value: file://rubrics/schemaValid.js
+      metric: schema_valid
+    - type: javascript
+      value: file://rubrics/citationPresent.js
+      metric: citation_present
+    - type: javascript
+      value: file://rubrics/factuallyConsistent.js
+      metric: factually_consistent
+
+- description: "EVIDENCE-3 — autoantibody screening for presymptomatic type 1 diabetes (chapter 2)"
+  vars:
+    question: "What autoantibodies does the ADA recommend testing for presymptomatic type 1 diabetes screening?"
+    mode: "followup"
+  assert:
+    - type: javascript
+      value: file://rubrics/schemaValid.js
+      metric: schema_valid
+    - type: javascript
+      value: file://rubrics/citationPresent.js
+      metric: citation_present
+    - type: javascript
+      value: file://rubrics/factuallyConsistent.js
+      metric: factually_consistent
+
+- description: "EVIDENCE-4 — prediabetes monitoring cadence (chapter 3)"
+  vars:
+    question: "How frequently does the ADA recommend monitoring people with prediabetes for the development of diabetes?"
+    mode: "followup"
+  assert:
+    - type: javascript
+      value: file://rubrics/schemaValid.js
+      metric: schema_valid
+    - type: javascript
+      value: file://rubrics/citationPresent.js
+      metric: citation_present
+    - type: javascript
+      value: file://rubrics/factuallyConsistent.js
+      metric: factually_consistent
+
+- description: "EVIDENCE-5 — comprehensive medical evaluation: communication style (chapter 4)"
+  vars:
+    question: "What communication style does the ADA recommend during routine diabetes evaluation?"
+    mode: "followup"
+  assert:
+    - type: javascript
+      value: file://rubrics/schemaValid.js
+      metric: schema_valid
+    - type: javascript
+      value: file://rubrics/citationPresent.js
+      metric: citation_present
+    - type: javascript
+      value: file://rubrics/factuallyConsistent.js
+      metric: factually_consistent
+
+- description: "EVIDENCE-6 — DSMES participation recommendation (chapter 5)"
+  vars:
+    question: "Does the ADA recommend that all people with diabetes participate in diabetes self-management education and support?"
+    mode: "followup"
+  assert:
+    - type: javascript
+      value: file://rubrics/schemaValid.js
+      metric: schema_valid
+    - type: javascript
+      value: file://rubrics/citationPresent.js
+      metric: citation_present
+    - type: javascript
+      value: file://rubrics/factuallyConsistent.js
+      metric: factually_consistent
+
+- description: "EVIDENCE-7 — glycemic-status assessment cadence and tools (chapter 6)"
+  vars:
+    question: "How often does the ADA recommend assessing glycemic status, and what tools can be used?"
+    mode: "followup"
+  assert:
+    - type: javascript
+      value: file://rubrics/schemaValid.js
+      metric: schema_valid
+    - type: javascript
+      value: file://rubrics/citationPresent.js
+      metric: citation_present
+    - type: javascript
+      value: file://rubrics/factuallyConsistent.js
+      metric: factually_consistent
+
+- description: "EVIDENCE-8 — less stringent glycemic goals for frail older adults (chapter 6)"
+  vars:
+    question: "When does the ADA recommend less stringent glycemic goals for adults with diabetes?"
+    mode: "followup"
+  assert:
+    - type: javascript
+      value: file://rubrics/schemaValid.js
+      metric: schema_valid
+    - type: javascript
+      value: file://rubrics/citationPresent.js
+      metric: citation_present
+    - type: javascript
+      value: file://rubrics/factuallyConsistent.js
+      metric: factually_consistent
+
+- description: "EVIDENCE-9 — glucagon prescribing for severe hypoglycemia (chapter 6)"
+  vars:
+    question: "For whom does the ADA recommend prescribing glucagon, and where should it be accessible?"
+    mode: "followup"
+  assert:
+    - type: javascript
+      value: file://rubrics/schemaValid.js
+      metric: schema_valid
+    - type: javascript
+      value: file://rubrics/citationPresent.js
+      metric: citation_present
+    - type: javascript
+      value: file://rubrics/factuallyConsistent.js
+      metric: factually_consistent
+
+- description: "EVIDENCE-10 — CGM for adults on insulin (chapter 7)"
+  vars:
+    question: "Does the ADA recommend continuous glucose monitoring for adults with diabetes on insulin therapy?"
+    mode: "followup"
+  assert:
+    - type: javascript
+      value: file://rubrics/schemaValid.js
+      metric: schema_valid
+    - type: javascript
+      value: file://rubrics/citationPresent.js
+      metric: citation_present
+    - type: javascript
+      value: file://rubrics/factuallyConsistent.js
+      metric: factually_consistent
+
+- description: "EVIDENCE-11 — metabolic surgery BMI eligibility for T2D (chapter 8)"
+  vars:
+    question: "What BMI threshold does the ADA use as eligibility criteria for considering metabolic surgery in adults with type 2 diabetes?"
+    mode: "followup"
+  assert:
+    - type: javascript
+      value: file://rubrics/schemaValid.js
+      metric: schema_valid
+    - type: javascript
+      value: file://rubrics/citationPresent.js
+      metric: citation_present
+    - type: javascript
+      value: file://rubrics/factuallyConsistent.js
+      metric: factually_consistent
+
+- description: "EVIDENCE-12 — first-line for T2D + ASCVD: GLP-1 RA / SGLT2 inhibitor (chapter 9)"
+  vars:
+    question: "What does the ADA recommend as the first-line glucose-lowering medication for adults with type 2 diabetes who have established or high risk of atherosclerotic cardiovascular disease?"
+    mode: "followup"
+  assert:
+    - type: javascript
+      value: file://rubrics/schemaValid.js
+      metric: schema_valid
+    - type: javascript
+      value: file://rubrics/citationPresent.js
+      metric: citation_present
+    - type: javascript
+      value: file://rubrics/factuallyConsistent.js
+      metric: factually_consistent
+
+- description: "EVIDENCE-13 — initial combination therapy in T2D (chapter 9)"
+  vars:
+    question: "Does the ADA recommend considering initial combination therapy for adults with type 2 diabetes, and why?"
+    mode: "followup"
+  assert:
+    - type: javascript
+      value: file://rubrics/schemaValid.js
+      metric: schema_valid
+    - type: javascript
+      value: file://rubrics/citationPresent.js
+      metric: citation_present
+    - type: javascript
+      value: file://rubrics/factuallyConsistent.js
+      metric: factually_consistent
+
+- description: "EVIDENCE-14 — insulin pump or MDI for adults with type 1 diabetes (chapter 9)"
+  vars:
+    question: "Does the ADA recommend continuous subcutaneous insulin infusion or multiple daily doses of insulin for most adults with type 1 diabetes?"
+    mode: "followup"
+  assert:
+    - type: javascript
+      value: file://rubrics/schemaValid.js
+      metric: schema_valid
+    - type: javascript
+      value: file://rubrics/citationPresent.js
+      metric: citation_present
+    - type: javascript
+      value: file://rubrics/factuallyConsistent.js
+      metric: factually_consistent
+
+- description: "EVIDENCE-15 — ADA on-treatment BP target for adults with diabetes (chapter 10)"
+  vars:
+    question: "What is the ADA's recommended on-treatment blood pressure target for adults with diabetes and hypertension?"
+    mode: "followup"
+  assert:
+    - type: javascript
+      value: file://rubrics/schemaValid.js
+      metric: schema_valid
+    - type: javascript
+      value: file://rubrics/citationPresent.js
+      metric: citation_present
+    - type: javascript
+      value: file://rubrics/factuallyConsistent.js
+      metric: factually_consistent
+
+- description: "EVIDENCE-16 — statin therapy intensity for diabetes without ASCVD (chapter 10)"
+  vars:
+    question: "What statin intensity does the ADA recommend for adults with diabetes who do not have established atherosclerotic cardiovascular disease?"
+    mode: "followup"
+  assert:
+    - type: javascript
+      value: file://rubrics/schemaValid.js
+      metric: schema_valid
+    - type: javascript
+      value: file://rubrics/citationPresent.js
+      metric: citation_present
+    - type: javascript
+      value: file://rubrics/factuallyConsistent.js
+      metric: factually_consistent
+
+- description: "EVIDENCE-17 — eGFR threshold below which SGLT2 glycemic benefit is reduced (chapter 11)"
+  vars:
+    question: "Below what eGFR does the ADA note that the glycemic benefits of SGLT2 inhibitors are reduced?"
+    mode: "followup"
+  assert:
+    - type: javascript
+      value: file://rubrics/schemaValid.js
+      metric: schema_valid
+    - type: javascript
+      value: file://rubrics/citationPresent.js
+      metric: citation_present
+    - type: javascript
+      value: file://rubrics/factuallyConsistent.js
+      metric: factually_consistent
+
+- description: "EVIDENCE-18 — nonsteroidal MRA for CKD with albuminuria (chapter 11)"
+  vars:
+    question: "When does the ADA recommend a nonsteroidal mineralocorticoid receptor antagonist (MRA) for patients with chronic kidney disease and albuminuria?"
+    mode: "followup"
+  assert:
+    - type: javascript
+      value: file://rubrics/schemaValid.js
+      metric: schema_valid
+    - type: javascript
+      value: file://rubrics/citationPresent.js
+      metric: citation_present
+    - type: javascript
+      value: file://rubrics/factuallyConsistent.js
+      metric: factually_consistent
+
+- description: "EVIDENCE-19 — comprehensive foot examination cadence (chapter 12)"
+  vars:
+    question: "How often does the ADA recommend a comprehensive foot examination for adults with diabetes?"
+    mode: "followup"
+  assert:
+    - type: javascript
+      value: file://rubrics/schemaValid.js
+      metric: schema_valid
+    - type: javascript
+      value: file://rubrics/citationPresent.js
+      metric: citation_present
+    - type: javascript
+      value: file://rubrics/factuallyConsistent.js
+      metric: factually_consistent
+
+- description: "EVIDENCE-20 — assessment domains in older adults with diabetes (chapter 13)"
+  vars:
+    question: "What domains does the ADA recommend assessing in older adults with diabetes?"
+    mode: "followup"
+  assert:
+    - type: javascript
+      value: file://rubrics/schemaValid.js
+      metric: schema_valid
+    - type: javascript
+      value: file://rubrics/citationPresent.js
+      metric: citation_present
+    - type: javascript
+      value: file://rubrics/factuallyConsistent.js
+      metric: factually_consistent
+
+- description: "EVIDENCE-21 — diabetes education for children, adolescents, and caregivers (chapter 14)"
+  vars:
+    question: "What does the ADA recommend for diabetes education in children and adolescents with diabetes and their caregivers?"
+    mode: "followup"
+  assert:
+    - type: javascript
+      value: file://rubrics/schemaValid.js
+      metric: schema_valid
+    - type: javascript
+      value: file://rubrics/citationPresent.js
+      metric: citation_present
+    - type: javascript
+      value: file://rubrics/factuallyConsistent.js
+      metric: factually_consistent
+
+- description: "EVIDENCE-22 — preconception counseling for people of childbearing potential (chapter 15)"
+  vars:
+    question: "When and for whom does the ADA recommend preconception counseling for people with diabetes?"
+    mode: "followup"
+  assert:
+    - type: javascript
+      value: file://rubrics/schemaValid.js
+      metric: schema_valid
+    - type: javascript
+      value: file://rubrics/citationPresent.js
+      metric: citation_present
+    - type: javascript
+      value: file://rubrics/factuallyConsistent.js
+      metric: factually_consistent
+
+- description: "EVIDENCE-23 — A1c testing on hospital admission for hyperglycemia (chapter 16)"
+  vars:
+    question: "Does the ADA recommend an A1c test on hospital admission for people with diabetes or hyperglycemia, and within what timeframe?"
+    mode: "followup"
+  assert:
+    - type: javascript
+      value: file://rubrics/schemaValid.js
+      metric: schema_valid
+    - type: javascript
+      value: file://rubrics/citationPresent.js
+      metric: citation_present
+    - type: javascript
+      value: file://rubrics/factuallyConsistent.js
+      metric: factually_consistent

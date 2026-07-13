@@ -1,0 +1,78 @@
+# UC-3 — Active-Medication Check with Drug-Drug Interactions
+# USERS.md §"Use Case — UC-3"
+#
+# Flow (post-W2): supervisor → ClinicalDataWorker → synthesizer →
+# verifier. DDI rule citations (`rule:ddi:*`, `rule:no-data:*`) are
+# patient_record-source citations the verifier resolves the same way
+# as `tool:<name>:row-<n>` — the regex assertions below are stable
+# across the supervisor flow.
+
+- description: "UC-3.1 — 'walk me through her current meds' cites tool:get_medications:row-… or honest empty"
+  vars:
+    question: "Walk me through her current meds."
+  assert:
+    - type: javascript
+      value: |
+        if (/tool:get_medications:row-/.test(output)) return true;
+        const claims = [...output.matchAll(/event: claim\ndata: (\{[^\n]+\})/g)];
+        if (claims.length === 0) return true;
+        const conf = output.match(/"confidence"\s*:\s*"(low|medium|high)"/);
+        if (conf && conf[1] === 'low') return true;
+        return (/no active medication|no medications? on file/i.test(output)) ? true : { pass: false, reason: 'no meds citation, claims>0, confidence!=low, no empty-list keyword', score: 0 };
+
+- description: "UC-3.2 — DDI question yields a rule:* citation (ddi or no-data) or honest no-interaction"
+  vars:
+    question: "Any drug interactions to flag?"
+  assert:
+    - type: javascript
+      value: |
+        const ddi = /rule:ddi:[\w-]+/.test(output);
+        const noData = /rule:no-data:check_drug_interactions/.test(output);
+        if (ddi || noData) return true;
+        // Structural absence: zero claims or low-confidence is an honest "no interaction to report".
+        const claims = [...output.matchAll(/event: claim\ndata: (\{[^\n]+\})/g)];
+        if (claims.length === 0) return true;
+        const conf = output.match(/"confidence"\s*:\s*"(low|medium|high)"/);
+        if (conf && conf[1] === 'low') return true;
+        // Match flexible phrasing: "no [adjective]{0,3} interactions (detected|found|noted|on file|identified|flagged)"
+        const noInteraction = /\bno\s+(?:[\w-]+\s+){0,3}interactions?\s+(?:detected|found|noted|on\s+file|identified|flagged)/i.test(output)
+          || /no\s+(?:active\s+)?medications?\s+on\s+file/i.test(output);
+        return noInteraction ? true : { pass: false, reason: 'no DDI rule citation, claims>0, confidence!=low, no no-interaction phrase', score: 0 };
+
+- description: "UC-3.3 — every rule:ddi:* claim is severity=urgent (deterministic safety floor)"
+  vars:
+    question: "Cross-check her medications for any dangerous interactions."
+  assert:
+    - type: javascript
+      value: |
+        const claims = [...output.matchAll(/event: claim\ndata: (\{[^\n]+\})/g)]
+          .map(m => JSON.parse(m[1]));
+        for (const c of claims) {
+          if ((c.citation_ids || []).some(id => id.startsWith('rule:ddi:'))) {
+            if (c.severity !== 'urgent') return { pass: false, reason: `DDI claim severity=${c.severity}`, score: 0 };
+          }
+        }
+        return true;
+
+- description: "UC-3.4 — DDI question never cites an inappropriate tool (e.g. get_vitals, get_allergies) for the interaction itself"
+  vars:
+    question: "Any drug interaction concerns I should flag?"
+  assert:
+    - type: javascript
+      value: |
+        const claims = [...output.matchAll(/event: claim\ndata: (\{[^\n]+\})/g)]
+          .map(m => JSON.parse(m[1]));
+        for (const c of claims) {
+          const ids = c.citation_ids || [];
+          const looksDdi = /interaction|ddi|contraindicat/i.test(c.text);
+          if (looksDdi) {
+            const ok = ids.some(id =>
+              id.startsWith('rule:ddi:') ||
+              id.startsWith('rule:no-data:check_drug_interactions') ||
+              id.startsWith('tool:check_drug_interactions:row-') ||
+              id.startsWith('tool:get_medications:row-')
+            );
+            if (!ok) return { pass: false, reason: `DDI-flavoured claim with wrong citation: ${JSON.stringify(c)}`, score: 0 };
+          }
+        }
+        return true;

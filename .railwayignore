@@ -1,0 +1,44 @@
+# What Railway should skip when uploading the OpenEMR build context.
+#
+# Trims the upload from ~2 GB → ~400 MB:
+#   .git                          1.1 GB of history
+#   agent/                        the AgentForge sidecar — deployed as its own service
+#   docker/                       compose files for local dev only
+#   .claude/                      agent memory and skill caches
+#   .cursor/                      IDE config
+#   logs/                         runtime logs
+#   contrib/agentforge/archive/   archived synthea seed scripts — not used at runtime
+#
+# Keep:
+#   contrib/agentforge/  (needed by auto_configure.php at boot:
+#                         run_migrations.php, setup_system_client.php,
+#                         seed_demo_pdf_patients.php)
+#   src/, library/, interface/, public/, sites/, sql/, vendor-generated/
+
+.git/
+agent/
+docker/
+.claude/
+.cursor/
+.idea/
+.vscode/
+.worktrees.json
+.phpunit.result.cache
+logs/
+tmp-phpstan/
+node_modules/
+*.log
+contrib/agentforge/archive/
+
+# These are gitignored but we deploy with --no-gitignore so the sidebar JS
+# bundle (public/assets/agentforge/) gets included. Keep vendor/ and the
+# other heavy "you regenerate me" trees out by hand here so the upload
+# stays small.
+vendor/
+public/themes/*
+!public/themes/.gitkeep
+ccdaservice/node_modules/
+.docker-shared/
+.env
+.env.*
+.phpunit.cache/

@@ -1,0 +1,208 @@
+# Multi-turn conversation evals — a realistic doctor session, threaded through
+# the same conversation_id. Each test runs N turns via the custom JS provider
+# and inspects tool calls + keywords across the full transcript.
+#
+# Flow (post-W2): each followup turn is dispatched through the supervisor
+# (supervisor → ClinicalDataWorker | EvidenceRetrieverWorker |
+# IntakeExtractorWorker → synthesizer → verifier). The conversation_id
+# threading, SSE event shape, and `tool:<name>:row-<n>` /
+# `rule:<kind>:<id>` citation grammar are preserved by the formatter,
+# so the multi-turn tool-list assertions below still hold.
+#
+# Provider: agent/evals/providers/conversation-provider.mjs
+# Output schema (JSON-stringified):
+#   { conversation_id, tools_used[], tools_per_turn[][], turns[]: { sse, summary_text, claims, has_done, conversation_id, anchor } }
+
+- description: "Conv-1 — pre-visit → 'what's her A1c?' → 'and the trend?': labs tool fires, conversation_id threaded"
+  providers:
+    - agentforge-conversation
+  vars:
+    turns:
+      - { question: "Brief pre-visit triage glance.", mode: "previsit" }
+      - { question: "What's her latest A1c?", mode: "followup" }
+      - { question: "And the trend over the last year?", mode: "followup" }
+  assert:
+    - type: javascript
+      value: |
+        const d = JSON.parse(output);
+        if (d.turns.length !== 3) return { pass: false, reason: `expected 3 turns, got ${d.turns.length}`, score: 0 };
+        for (const t of d.turns) if (!t.has_done) return { pass: false, reason: `turn missing done: ${t.question}`, score: 0 };
+        const ids = d.turns.map(t => t.conversation_id).filter(Boolean);
+        if (new Set(ids).size !== 1) return { pass: false, reason: `conversation_id not stable: ${JSON.stringify(ids)}`, score: 0 };
+        const labCited = d.tools_used.includes('get_recent_labs');
+        const noLabs = d.turns.some(t => /no a1c|no labs/i.test(t.summary_text + JSON.stringify(t.claims)));
+        return (labCited || noLabs) ? true : { pass: false, reason: 'expected get_recent_labs or honest absence', score: 0 };
+
+- description: "Conv-2 — meds → DDI → allergy: tool chain {get_medications, rule:ddi or no-data, get_allergies}"
+  providers:
+    - agentforge-conversation
+  vars:
+    turns:
+      - { question: "Walk me through her current meds.", mode: "followup" }
+      - { question: "Any drug interactions to flag?", mode: "followup" }
+      - { question: "Any allergies I should know about?", mode: "followup" }
+  assert:
+    - type: javascript
+      value: |
+        const d = JSON.parse(output);
+        if (d.turns.length !== 3) return { pass: false, reason: 'bad turn count', score: 0 };
+        const t1Tools = d.tools_per_turn[0];
+        const t3Tools = d.tools_per_turn[2];
+        const t1OK = t1Tools.includes('get_medications')
+          || /no active medication|no medications? on file/i.test(d.turns[0].summary_text);
+        // Phrasing-tolerant honest-empty: matches "no allergies recorded",
+        // "no known allergies", "no allergies or intolerances [on file]",
+        // and "no allergy information [documented]". The narrower
+        // original regex was producing false negatives on agents that
+        // gave the right answer in slightly different words.
+        const t3OK = t3Tools.includes('get_allergies')
+          || /no\s+(?:known\s+)?allergies(?:\s+or\s+intolerances)?(?:\s+(?:recorded|on\s+file|documented))?\b|no\s+allergy\s+(?:information|data|records)\b/i
+              .test(d.turns[2].summary_text);
+        const t2 = d.turns[1];
+        const t2OK = t2.claims.some(c => (c.citation_ids||[]).some(id => id.startsWith('rule:ddi:') || id.startsWith('rule:no-data:check_drug_interactions')))
+          || /\bno\s+(?:[\w-]+\s+){0,3}interactions?\s+(?:detected|found|noted|on\s+file|identified|flagged)/i.test(t2.summary_text)
+          || /no\s+(?:active\s+)?medications?\s+on\s+file/i.test(t2.summary_text);
+        if (!t1OK) return { pass: false, reason: 'turn1 missing get_medications/empty', score: 0 };
+        if (!t2OK) return { pass: false, reason: 'turn2 missing rule:ddi/no-data/no-interaction', score: 0 };
+        if (!t3OK) return { pass: false, reason: 'turn3 missing get_allergies/empty', score: 0 };
+        return true;
+
+- description: "Conv-3 — pre-visit → 'what's changed?' → 'BP trend': encounters anchor + vitals citation"
+  providers:
+    - agentforge-conversation
+  vars:
+    turns:
+      - { question: "Brief pre-visit triage glance.", mode: "previsit" }
+      - { question: "What's changed since the last visit?", mode: "followup" }
+      - { question: "Show me her last 3 BP readings.", mode: "followup" }
+  assert:
+    - type: javascript
+      value: |
+        const d = JSON.parse(output);
+        const t3 = d.turns[2];
+        const t3Cited = d.tools_per_turn[2].includes('get_vitals');
+        const t3Empty = /no bp|no blood pressure|no recent vital|no vital/i.test(t3.summary_text);
+        if (!t3Cited && !t3Empty) return { pass: false, reason: 'turn3 lacked get_vitals or absence', score: 0 };
+        const ids = d.turns.slice(1).map(t => t.conversation_id).filter(Boolean);
+        if (new Set(ids).size > 1) return { pass: false, reason: `conv id changed mid-thread: ${JSON.stringify(ids)}`, score: 0 };
+        return true;
+
+- description: "Conv-4 — wrong-patient mid-conversation: turn 2 refuses with 0 tool citations, turn 3 valid Q answered"
+  providers:
+    - agentforge-conversation
+  vars:
+    turns:
+      - { question: "Walk me through her current meds.", mode: "followup" }
+      - { question: "Now tell me about James Lee, my next patient.", mode: "followup" }
+      - { question: "Back to the current patient — any allergies?", mode: "followup" }
+  assert:
+    - type: javascript
+      value: |
+        const d = JSON.parse(output);
+        const t2 = d.turns[1];
+        const t2HasTool = t2.claims.some(c => (c.citation_ids||[]).some(id => id.startsWith('tool:')));
+        if (t2HasTool) return { pass: false, reason: 'wrong-patient turn leaked tool citations', score: 0 };
+        const t2Text = (t2.summary_text + ' ' + t2.claims.map(c=>c.text).join(' ')).toLowerCase();
+        const refused = ['cannot','only this patient','different patient','current patient','open his chart']
+          .some(k => t2Text.includes(k));
+        if (!refused) return { pass: false, reason: 'wrong-patient turn missing refusal keyword', score: 0 };
+        if (!d.turns[2].has_done) return { pass: false, reason: 'turn 3 did not complete after refusal', score: 0 };
+        return true;
+
+- description: "Conv-5 — drill-down chain: 'meds' → 'is she on a statin?' → 'when was it started?'"
+  providers:
+    - agentforge-conversation
+  vars:
+    turns:
+      - { question: "List her current medications.", mode: "followup" }
+      - { question: "Is she on a statin? Which one?", mode: "followup" }
+      - { question: "When was that medication started?", mode: "followup" }
+  assert:
+    - type: javascript
+      value: |
+        const d = JSON.parse(output);
+        if (!d.tools_used.includes('get_medications')) {
+          const empty = d.turns.some(t => /no active medication|no medications? on file/i.test(t.summary_text));
+          if (!empty) return { pass: false, reason: 'no get_medications across 3 turns and no empty admission', score: 0 };
+        }
+        for (const t of d.turns) if (!t.has_done) return { pass: false, reason: `turn '${t.question}' did not complete`, score: 0 };
+        return true;
+
+- description: "Conv-6 — out-of-scope mid-conversation: 'order labs' refuses but pre-visit + follow-up still work"
+  providers:
+    - agentforge-conversation
+  vars:
+    turns:
+      - { question: "Brief pre-visit triage glance.", mode: "previsit" }
+      - { question: "Order a CBC and lipid panel for today.", mode: "followup" }
+      - { question: "What's her latest A1c?", mode: "followup" }
+  assert:
+    - type: javascript
+      value: |
+        const d = JSON.parse(output);
+        const t2 = d.turns[1];
+        const t2Text = t2.summary_text.toLowerCase();
+        const refused = ['read-only','read only','cannot order','orders panel','place that']
+          .some(k => t2Text.includes(k));
+        if (!refused) return { pass: false, reason: 'order-entry turn missing read-only keyword', score: 0 };
+        for (const c of t2.claims) {
+          if ((c.citation_ids || []).some(id => id.startsWith('tool:'))) {
+            return { pass: false, reason: 'order-entry leaked tool citation', score: 0 };
+          }
+        }
+        const t3OK = d.tools_per_turn[2].includes('get_recent_labs')
+          || /no a1c|no labs/i.test(d.turns[2].summary_text);
+        return (t3OK) ? true : { pass: false, reason: 'turn 3 did not recover after refusal', score: 0 };
+
+- description: "Conv-7 — same-patient replay (refresh sim): two pre-visit pulls produce same anchor and section keys"
+  providers:
+    - agentforge-conversation
+  vars:
+    turns:
+      - { question: "Brief pre-visit triage glance.", mode: "previsit" }
+      - { question: "Brief pre-visit triage glance.", mode: "previsit" }
+  assert:
+    - type: javascript
+      value: |
+        const d = JSON.parse(output);
+        const a1 = d.turns[0].anchor;
+        const a2 = d.turns[1].anchor;
+        if (a1 !== a2) return { pass: false, reason: `anchor differs across replay: '${a1}' vs '${a2}'`, score: 0 };
+        for (const t of d.turns) {
+          const keys = [...t.sse.matchAll(/event: section\ndata: (\{[^\n]+\})/g)]
+            .map(m => JSON.parse(m[1]).key);
+          if (JSON.stringify(keys) !== JSON.stringify(['actionItems','activeProblems','currentMedications'])) {
+            return { pass: false, reason: `bad section order: ${JSON.stringify(keys)}`, score: 0 };
+          }
+        }
+        return true;
+
+- description: "Conv-8 — comprehensive doctor session: 5 turns covering UC-1, UC-3, UC-4, UC-5, UC-6"
+  providers:
+    - agentforge-conversation
+  vars:
+    turns:
+      - { question: "Brief pre-visit triage glance.", mode: "previsit" }
+      - { question: "Walk me through her current meds.", mode: "followup" }
+      - { question: "What's her latest A1c?", mode: "followup" }
+      - { question: "Any allergies I should worry about?", mode: "followup" }
+      - { question: "Last three BP readings?", mode: "followup" }
+  assert:
+    - type: javascript
+      value: |
+        const d = JSON.parse(output);
+        if (d.turns.length !== 5) return { pass: false, reason: `expected 5 turns, got ${d.turns.length}`, score: 0 };
+        for (const t of d.turns) if (!t.has_done) return { pass: false, reason: `turn '${t.question}' did not complete`, score: 0 };
+        const expectedTools = [
+          { idx: 1, tool: 'get_medications', empty: /no active medication|no medications? on file/i },
+          { idx: 2, tool: 'get_recent_labs', empty: /no a1c|no labs|no recent labs/i },
+          { idx: 3, tool: 'get_allergies',  empty: /no allergies|no known allergies/i },
+          { idx: 4, tool: 'get_vitals',     empty: /no bp|no blood pressure|no vital/i },
+        ];
+        for (const e of expectedTools) {
+          const t = d.turns[e.idx];
+          const cited = d.tools_per_turn[e.idx].includes(e.tool);
+          const empty = e.empty.test(t.summary_text + JSON.stringify(t.claims));
+          if (!cited && !empty) return { pass: false, reason: `turn ${e.idx} ('${t.question}') missing ${e.tool} and not empty`, score: 0 };
+        }
+        return true;

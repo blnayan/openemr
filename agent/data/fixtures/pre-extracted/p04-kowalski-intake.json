@@ -1,0 +1,26 @@
+{
+  "doc_type": "intake_form",
+  "schema_version": "1",
+  "demographics": {
+    "name": "Robert Kowalski",
+    "dob": null,
+    "sex": "M",
+    "bbox_per_field": {
+      "name": { "page": 0, "x": 130, "y": 180, "w": 200, "h": 14, "image_w": 1024, "image_h": 1456 }
+    }
+  },
+  "chief_concern": null,
+  "current_medications": [
+    {
+      "name": "Multivitamin",
+      "dose": null,
+      "frequency": null,
+      "route": null,
+      "is_otc_or_supplement": true,
+      "bbox": { "page": 0, "x": 60, "y": 540, "w": 440, "h": 14, "image_w": 1024, "image_h": 1456 }
+    }
+  ],
+  "allergies": [],
+  "family_history": [],
+  "source_citation": { "document_id": "fixture:p04-kowalski-intake", "page_count": 1 }
+}

@@ -1,0 +1,80 @@
+{
+  "patient_uuid": "test-patient-warfarin-001",
+  "pid": 9002,
+  "description": "DDI fixture — patient on warfarin + ibuprofen for clinical rule eval class 8",
+  "fhir_mocks": {
+    "/Patient/test-patient-warfarin-001": {
+      "resourceType": "Patient",
+      "id": "test-patient-warfarin-001",
+      "name": [{ "use": "official", "family": "Smith", "given": ["John"] }],
+      "birthDate": "1945-02-20",
+      "gender": "male"
+    },
+    "/MedicationRequest?patient=test-patient-warfarin-001&status=active": {
+      "resourceType": "Bundle",
+      "type": "searchset",
+      "entry": [
+        {
+          "resource": {
+            "resourceType": "MedicationRequest",
+            "id": "med-warfarin",
+            "status": "active",
+            "medicationCodeableConcept": {
+              "coding": [{ "system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "11289", "display": "Warfarin" }],
+              "text": "Warfarin 5 mg"
+            },
+            "dosageInstruction": [{ "text": "5 mg once daily, INR goal 2-3" }]
+          }
+        },
+        {
+          "resource": {
+            "resourceType": "MedicationRequest",
+            "id": "med-ibuprofen",
+            "status": "active",
+            "medicationCodeableConcept": {
+              "coding": [{ "system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "5640", "display": "Ibuprofen" }],
+              "text": "Ibuprofen 400 mg"
+            },
+            "dosageInstruction": [{ "text": "400 mg every 6 hours as needed" }],
+            "authoredOn": "2026-04-20"
+          }
+        }
+      ]
+    },
+    "/AllergyIntolerance?patient=test-patient-warfarin-001": {
+      "resourceType": "Bundle",
+      "type": "searchset",
+      "entry": []
+    },
+    "/Condition?patient=test-patient-warfarin-001&clinical-status=active": {
+      "resourceType": "Bundle",
+      "type": "searchset",
+      "entry": [
+        {
+          "resource": {
+            "resourceType": "Condition",
+            "id": "cond-afib",
+            "clinicalStatus": { "coding": [{ "code": "active" }] },
+            "code": { "text": "Atrial fibrillation" },
+            "onsetDateTime": "2020-11-01"
+          }
+        }
+      ]
+    },
+    "/Observation?patient=test-patient-warfarin-001&category=laboratory&_sort=-date&_count=50": {
+      "resourceType": "Bundle",
+      "type": "searchset",
+      "entry": []
+    },
+    "/Observation?patient=test-patient-warfarin-001&category=vital-signs&_sort=-date&_count=20": {
+      "resourceType": "Bundle",
+      "type": "searchset",
+      "entry": []
+    },
+    "/Encounter?patient=test-patient-warfarin-001&_sort=-date&_count=10": {
+      "resourceType": "Bundle",
+      "type": "searchset",
+      "entry": []
+    }
+  }
+}
