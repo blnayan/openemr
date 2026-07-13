@@ -256,7 +256,7 @@ services:
         condition: service_completed_successfully
 
   mysql:
-    image: mariadb:11.8.6@sha256:78a5047d3ba33975f183f183c2464cc7f1eab13ec8667e57cc9a5821d6da7577
+    image: mariadb:11.8.8@sha256:efb4959ef2c835cd735dbc388eb9ad6aab0c78dd64febcd51bc17481111890c4
 
 volumes:
   redis-certs:
